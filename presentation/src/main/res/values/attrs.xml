@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+
+    <attr name="primaryTextColor" format="reference|color" />
+    <attr name="primaryTextColor87" format="reference|color" />
+    <attr name="primaryTextColor60" format="reference|color" />
+    <attr name="primaryTextColor38" format="reference|color" />
+
+
+    <attr name="viewBackground" format="reference|color" />
+    <attr name="viewBackgroundOnBackground" format="reference|color" />
+
+
+    <attr name="btnPrimaryTextColor" format="reference|color" />
+
+
+
+</resources>

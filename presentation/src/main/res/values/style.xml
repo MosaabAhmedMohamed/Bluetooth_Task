@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
+    <style name="DarkThemeToolbarStyle">
+        <item name="colorControlNormal">?primaryTextColor</item>
+    </style>
+
+    <style name="DialogStyle" parent="Base.Theme.AppCompat.Dialog">
+        <item name="android:windowMinWidthMajor">80%</item>
+        <item name="android:windowMinWidthMinor">80%</item>
+        <item name="android:layout_gravity">center</item>
+    </style>
+
+    <style name="circuralProgressBarStyle" parent="Widget.AppCompat.ProgressBar">
+        <item name="android:indeterminateTint">@color/purple_200</item>
+        <item name="android:indeterminateTintMode">src_atop</item>
+        <item name="android:max">100</item>
+        <item name="android:progress">65</item>
+        <item name="android:indeterminate">true</item>
+        <item name="android:indeterminateBehavior">cycle</item>
+    </style>
+
+    <style name="textViewStyle" parent="Widget.AppCompat.TextView">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:textColor">?primaryTextColor</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">@dimen/dimen_14sp</item>
+        <item name="android:lineSpacingExtra">4.5sp</item>
+        <item name="android:textAlignment">viewStart</item>
+    </style>
+
+    <style name="boldTextViewStyle" parent="textViewStyle">
+        <item name="android:textStyle">bold</item>
+    </style>
+
+
+    <style name="toolbarStyle">
+        <item name="popupTheme">@style/Theme.MaterialComponents.Light.NoActionBar</item>
+        <item name="android:background">?colorPrimary</item>
+        <item name="android:theme">@style/toolbarTheme</item>
+        <item name="layout_scrollFlags">scroll|snap|exitUntilCollapsed</item>
+        <item name="expandedTitleTextAppearance">@style/ExpandedAppBar</item>
+        <item name="collapsedTitleTextAppearance">@style/CollapsedAppBar</item>
+    </style>
+
+    <style name="toolbarTheme">
+        <!-- Color used for the title of the Toolbar - as long as not overridden -->
+        <item name="android:textColorPrimary">?primaryTextColor</item>
+        <!-- Used to color back button and three dots -->
+        <item name="android:textColorSecondary">?primaryTextColor</item>
+    </style>
+
+    <style name="ExpandedAppBar" parent="@android:style/TextAppearance.Medium">
+        <item name="android:textSize">@dimen/dimen_22sp</item>
+        <item name="android:textColor">?primaryTextColor</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="CollapsedAppBar" parent="@android:style/TextAppearance.Medium">
+        <item name="android:textSize">@dimen/dimen_18sp</item>
+        <item name="android:textColor">?primaryTextColor</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <style name="roundedCornerImageView" parent="">
+        <item name="cornerSize">6dp</item>
+    </style>
+
+    <style name="circleImageView" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="CustomSearchViewTheme" parent="Widget.AppCompat.Light.SearchView">
+        <item name="android:textColorHint">@color/white_60</item>
+        <item name="android:editTextColor">@android:color/white</item>
+    </style>
+
+</resources>
