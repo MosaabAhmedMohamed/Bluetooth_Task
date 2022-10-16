@@ -106,7 +106,7 @@ class CentralGattDataSource @Inject constructor() {
             status: Int
         ) {
             if (characteristic.uuid == UUID.fromString(BleExt.CHAR_FOR_READ_UUID)) {
-                val strValue = characteristic.value.toString(Charsets.UTF_8)
+                val strValue = characteristic.value?.toString(Charsets.UTF_8)?:""
                 val log = "onCharacteristicRead " + when (status) {
                     BluetoothGatt.GATT_SUCCESS -> "OK, value=\"$strValue\""
                     BluetoothGatt.GATT_READ_NOT_PERMITTED -> "not allowed"

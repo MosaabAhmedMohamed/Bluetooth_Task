@@ -4,6 +4,7 @@ import android.bluetooth.*
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.ble.*
@@ -11,9 +12,7 @@ import com.example.core.util.DispatcherProvider
 import com.example.domain.central.model.CentralGattDomainModel
 import com.example.domain.central.usecase.GattUseCase
 import com.example.presentation.central.viewstate.CentralViewState
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -35,7 +34,7 @@ class BleCentralViewModel @Inject constructor(
             field = value
             appendLog("status = $value")
 
-            viewModelScope.launch {
+            viewModelScope.launch(dispatchers.main) {
                 uiState.value = CentralViewState.ConnectionLifeCycle(field)
             }
         }
@@ -87,7 +86,7 @@ class BleCentralViewModel @Inject constructor(
         lifecycleState = BLELifecycleState.Disconnected
     }
 
-    fun bleRestartLifecycle(userWantsToScanAndConnect: Boolean = false) {
+    fun bleRestartLifecycle(userWantsToScanAndConnect: Boolean = true) {
         viewModelScope.launch(dispatchers.main) {
             if (userWantsToScanAndConnect) {
                 if (gattUseCase.isGattNotInitialized()) {
@@ -110,7 +109,7 @@ class BleCentralViewModel @Inject constructor(
     fun onTapWrite(message: ByteArray) = gattUseCase.onTapWrite(message)
 
     private fun appendLog(message: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(dispatchers.main) {
             uiState.value = CentralViewState.Log(message)
         }
     }
@@ -119,25 +118,26 @@ class BleCentralViewModel @Inject constructor(
         viewModelScope.launch(dispatchers.io) {
             gattUseCase.gattStateCallback()
                 .buffer(5)
-                .collect {
-                    withContext(dispatchers.main) {
-                        when (it) {
-                            is CentralGattDomainModel.ConnectionLifeCycle -> lifecycleState =
-                                it.state
-                            is CentralGattDomainModel.Indicate -> {
-                                uiState.value = CentralViewState.Indicate(it.message)
-                            }
-                            CentralGattDomainModel.Initial -> {}
-                            is CentralGattDomainModel.Log -> {
-                                appendLog(it.message)
-                            }
-                            is CentralGattDomainModel.Read -> {
-                                uiState.value = CentralViewState.Read(it.message)
-                            }
-                            CentralGattDomainModel.RestartLifecycle -> bleRestartLifecycle()
-                        }
-                    }
+                .onEach {
+                   withContext(dispatchers.main){
+                       Log.d("testtestTAG", ":$it ")
+                       when (it) {
+                           is CentralGattDomainModel.ConnectionLifeCycle -> lifecycleState = it.state
+                           is CentralGattDomainModel.Indicate -> {
+                               uiState.value = CentralViewState.Indicate(it.message)
+                           }
+                           CentralGattDomainModel.Initial -> {}
+                           is CentralGattDomainModel.Log -> {
+                               appendLog(it.message)
+                           }
+                           is CentralGattDomainModel.Read -> {
+                               uiState.value = CentralViewState.Read(it.message)
+                           }
+                           CentralGattDomainModel.RestartLifecycle -> bleRestartLifecycle()
+                       }
+                   }
                 }
+                .launchIn(this)
         }
     }
 }
