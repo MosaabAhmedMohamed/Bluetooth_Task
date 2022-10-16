@@ -16,4 +16,4 @@ pluginManagement {
     }
 }
 rootProject.name = "Bluetooth Task"
-include(":app",":core",":presentation")
+include(":app",":core",":presentation",":domain",":data")

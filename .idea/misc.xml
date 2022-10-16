@@ -3,8 +3,9 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
-        <entry key="presentation/src/main/res/layout/fragment_centeral.xml" value="0.1" />
+        <entry key="presentation/src/main/res/layout/fragment_centeral.xml" value="0.33" />
         <entry key="presentation/src/main/res/layout/fragment_events.xml" value="0.1" />
+        <entry key="presentation/src/main/res/layout/fragment_peripheral.xml" value="0.21603260869565216" />
         <entry key="presentation/src/main/res/layout/item_event.xml" value="0.1" />
       </map>
     </option>

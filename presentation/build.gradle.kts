@@ -2,6 +2,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     kotlin("kapt")
+    id("androidx.navigation.safeargs.kotlin")
 }
 
 android {
@@ -38,6 +39,7 @@ android {
 dependencies {
 
     implementation(project(":core"))
+    implementation(project(":domain"))
 
     implementation(kotlin("stdlib-jdk7"))
     implementation(SupportLibs.ANDROIDX_APPCOMPAT)

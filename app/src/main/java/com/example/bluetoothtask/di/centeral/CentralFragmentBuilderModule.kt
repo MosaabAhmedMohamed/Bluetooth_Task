@@ -1,12 +1,12 @@
 package com.example.bluetoothtask.di.centeral
 
 
-import com.example.presentation.central.CentralFragment
+import com.example.presentation.central.fragment.CentralFragment
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
 
 
-@Module(includes = [EventsModule::class])
+@Module(includes = [CentralModule::class])
 abstract class CentralFragmentBuilderModule {
 
     @ContributesAndroidInjector

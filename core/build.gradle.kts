@@ -40,4 +40,15 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.3")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
+
+
+    implementation(TestingLib.Coroutines)
+    implementation(TestingLib.mockk)
+    implementation(TestingLib.JUNITjupiter)
+    testImplementation(TestingLib.RoboElectric)
+    testImplementation(TestingLib.mockito)
+    testImplementation(TestingLib.mockito_inline)
+    testImplementation(TestingLib.testing_core_testing)
+    testImplementation(TestingLib.android_test_room)
+    testImplementation(AndroidTestingLib.ANDROIDX_TEST_CORE)
 }

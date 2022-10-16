@@ -1,5 +1,6 @@
 package com.example.presentation.base.ui.ext
 
+import androidx.activity.result.ActivityResultLauncher
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
@@ -88,4 +89,42 @@ fun FragmentActivity.replaceFragment(
             addToBackStack(tag)
         }
     }
+}
+
+
+fun Fragment.isLocationPermissionRequired(askType: AskType,launcher: ActivityResultLauncher<Array<String>>): Boolean {
+    return if (isLocationPermissionGranted()) {
+        true
+    } else if (askType == AskType.InsistUntilSuccess) {
+        requireActivity().buildPermissionDialog(launcher).create().show()
+        isLocationPermissionRequired(AskType.InsistUntilSuccess,launcher)
+    } else {
+        // prepare motivation message show motivation message
+        requireActivity().buildPermissionDialog(launcher).create().show()
+        false
+    }
+}
+
+fun Fragment.isBluetoothCentralPermissionGranted(askType: AskType,launcher: ActivityResultLauncher<Array<String>>): Boolean {
+    if (isBluetoothCentralPermissionGranted()) {
+        return true
+    } else if (askType == AskType.InsistUntilSuccess) {
+        askForBluetoothCentralPermission(launcher)
+        isBluetoothCentralPermissionGranted(AskType.InsistUntilSuccess,launcher)
+    } else {
+        askForBluetoothCentralPermission(launcher)
+    }
+    return false
+}
+
+fun Fragment.isBluetoothPeripheralPermissionGranted(askType: AskType,launcher: ActivityResultLauncher<Array<String>>): Boolean {
+    if (isBluetoothPeripheralPermissionGranted()) {
+        return true
+    } else if (askType == AskType.InsistUntilSuccess) {
+        askForBluetoothPeripheralPermission(launcher)
+        isBluetoothPeripheralPermissionGranted(AskType.InsistUntilSuccess,launcher)
+    } else {
+        askForBluetoothPeripheralPermission(launcher)
+    }
+    return false
 }

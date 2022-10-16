@@ -18,3 +18,5 @@ fun View.visibility(show: Boolean) {
     else
         View.GONE
 }
+
+
