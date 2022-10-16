@@ -8,6 +8,7 @@ import com.example.core.util.DispatcherProvider
 import com.example.domain.peripheral.model.PeripheralGattDomainModel
 import com.example.domain.peripheral.usecase.GattServerUseCase
 import com.example.presentation.peripheral.viewstate.PeripheralViewState
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.buffer
@@ -15,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
+@HiltViewModel
 class BlePeripheralViewModel @Inject constructor(
     private val bluetoothAdapter: BluetoothAdapter,
     private val gattServerUseCase: GattServerUseCase,

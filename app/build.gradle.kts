@@ -4,6 +4,7 @@ plugins {
     id("kotlin-android-extensions")
     kotlin("kapt")
     id("kotlin-android")
+    id("dagger.hilt.android.plugin")
 }
 
 android {
@@ -76,25 +77,12 @@ dependencies {
     androidTestImplementation(AndroidTestingLib.ANDROIDX_TEST_RULES)
     androidTestImplementation(AndroidTestingLib.ESPRESSO_CORE)
 
-    /**
-     * DI
-     * */
-    implementation(DAGGER.DAGGER)
-    implementation(DAGGER.DAGGER_ANDROID_SUPPORT)
-    implementation(DAGGER.DAGGER_ANDROID)
-    kapt(DAGGER.DAGGER_ANNOTATION)
-    kapt(DAGGER.DAGGER_KAPT)
+    //Hilt
+    implementation("com.google.dagger:hilt-android:2.42")
+    kapt("com.google.dagger:hilt-android-compiler:2.42")
 
     //GSON
     implementation(GSON.GSON)
-
-    /**
-     * room Db
-     * */
-    implementation("androidx.room:room-rxjava2:2.4.2")
-    kapt("androidx.room:room-compiler:2.4.2")
-    api("androidx.room:room-runtime:2.4.2")
-    implementation("androidx.room:room-common:2.4.2")
 
     //Navigation
     implementation(NAVIGATION.NAVIGATION_FRAGMENT)

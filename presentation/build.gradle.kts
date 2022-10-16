@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     kotlin("kapt")
     id("androidx.navigation.safeargs.kotlin")
+    id("dagger.hilt.android.plugin")
 }
 
 android {
@@ -56,26 +57,13 @@ dependencies {
     testImplementation(TestingLib.android_test_room)
     testImplementation(AndroidTestingLib.ANDROIDX_TEST_CORE)
 
-    /**
-     * DI
-     * */
-    implementation(DAGGER.DAGGER)
-    implementation(DAGGER.DAGGER_ANDROID_SUPPORT)
-    implementation(DAGGER.DAGGER_ANDROID)
-    kapt(DAGGER.DAGGER_ANNOTATION)
-    kapt(DAGGER.DAGGER_KAPT)
+    //Hilt
+    implementation("com.google.dagger:hilt-android:2.42")
+    kapt("com.google.dagger:hilt-android-compiler:2.42")
 
     //Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
     testImplementation ("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
-
-    /**
-     * room Db
-     * */
-    implementation("androidx.room:room-ktx:2.4.2")
-    kapt("androidx.room:room-compiler:2.4.2")
-    api("androidx.room:room-runtime:2.4.2")
-    implementation("androidx.room:room-common:2.4.2")
 
 
     //Navigation

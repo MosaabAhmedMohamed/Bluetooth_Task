@@ -12,11 +12,13 @@ import com.example.core.util.DispatcherProvider
 import com.example.domain.central.model.CentralGattDomainModel
 import com.example.domain.central.usecase.GattUseCase
 import com.example.presentation.central.viewstate.CentralViewState
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
+@HiltViewModel
 class BleCentralViewModel @Inject constructor(
     context: Context,
     private val gattUseCase: GattUseCase,

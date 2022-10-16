@@ -7,8 +7,11 @@ import com.example.data.peripheral.source.remote.PeripheralGattDataSource
 import com.example.domain.peripheral.repository.PeripheralRepository
 import dagger.Module
 import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.components.ViewModelComponent
 
 @Module
+@InstallIn(ViewModelComponent::class)
 class PeripheralModule {
 
     @Provides

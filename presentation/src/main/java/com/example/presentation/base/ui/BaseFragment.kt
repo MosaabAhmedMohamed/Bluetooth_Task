@@ -2,9 +2,9 @@ package com.example.presentation.base.ui
 
 import android.os.Bundle
 import android.view.View
-import dagger.android.support.DaggerFragment
+import androidx.fragment.app.Fragment
 
-abstract class BaseFragment() : DaggerFragment() {
+abstract class BaseFragment() : Fragment() {
 
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

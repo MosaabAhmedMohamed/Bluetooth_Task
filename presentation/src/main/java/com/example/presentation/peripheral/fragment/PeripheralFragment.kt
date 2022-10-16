@@ -10,32 +10,28 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.widget.addTextChangedListener
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.presentation.R
-import com.example.presentation.base.ViewModelFactory
 import com.example.presentation.base.ui.BaseFragment
 import com.example.presentation.base.ui.ext.*
 import com.example.presentation.databinding.FragmentPeripheralBinding
 import com.example.presentation.peripheral.viewmodel.BlePeripheralViewModel
 import com.example.presentation.peripheral.viewstate.PeripheralViewState
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-import javax.inject.Inject
 
+@AndroidEntryPoint
 class PeripheralFragment : BaseFragment() {
 
 
     lateinit var binding: FragmentPeripheralBinding
-
-    @Inject
-    lateinit var blePeripheralViewModelFactory: ViewModelFactory<BlePeripheralViewModel>
-    private val blePeripheralViewModel by lazy {
-        ViewModelProvider(this, blePeripheralViewModelFactory)[BlePeripheralViewModel::class.java]
-    }
+    private val blePeripheralViewModel by viewModels<BlePeripheralViewModel>()
 
     override fun onCreateView(
         inflater: LayoutInflater,

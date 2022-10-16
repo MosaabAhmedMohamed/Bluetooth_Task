@@ -44,18 +44,11 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.3")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
 
-
-    /**
-     * DI
-     * */
-    implementation(DAGGER.DAGGER)
-    implementation(DAGGER.DAGGER_ANDROID_SUPPORT)
-    implementation(DAGGER.DAGGER_ANDROID)
-    kapt(DAGGER.DAGGER_ANNOTATION)
-    kapt(DAGGER.DAGGER_KAPT)
-
     //Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
     testImplementation ("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
 
+    //Hilt
+    implementation("com.google.dagger:hilt-android:2.42")
+    kapt("com.google.dagger:hilt-android-compiler:2.42")
 }
