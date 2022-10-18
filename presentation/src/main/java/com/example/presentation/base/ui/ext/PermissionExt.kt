@@ -1,12 +1,15 @@
 package com.example.presentation.base.ui.ext
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.result.ActivityResultLauncher
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.Fragment
 
 class PermissionExt {
 
@@ -38,33 +41,37 @@ fun peripheralWantedPermissions() = if (Build.VERSION.SDK_INT >= Build.VERSION_C
 fun locationPermission() = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
 
 
-fun Fragment.isBluetoothCentralPermissionGranted(): Boolean {
+fun Context.isBluetoothCentralPermissionGranted(): Boolean {
     val connectPermission =
-        ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT)
+        ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
     val scanPermission =
-        ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_SCAN)
+        ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
     return connectPermission == PackageManager.PERMISSION_GRANTED &&
             scanPermission == PackageManager.PERMISSION_GRANTED ||
-            requireContext().hasPermissions(centralWantedPermissions())
+            hasPermissions(centralWantedPermissions())
 
 }
 
-
+@Composable
 fun askForBluetoothCentralPermission(launcher: ActivityResultLauncher<Array<String>>) {
-    if (centralWantedPermissions().isNotEmpty())
-        launcher.launch(
-            centralWantedPermissions()
-        )
+    SideEffect {
+        if (centralWantedPermissions().isNotEmpty())
+            launcher.launch(
+                centralWantedPermissions()
+            )
+    }
+
+
 }
 
-fun Fragment.isBluetoothPeripheralPermissionGranted(): Boolean {
+fun Context.isBluetoothPeripheralPermissionGranted(): Boolean {
     val connectPermission =
-        ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT)
+        ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
     val scanAdvertise =
-        ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_ADVERTISE)
+        ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADVERTISE)
     return connectPermission == PackageManager.PERMISSION_GRANTED &&
             scanAdvertise == PackageManager.PERMISSION_GRANTED ||
-            requireContext().hasPermissions(peripheralWantedPermissions())
+            hasPermissions(peripheralWantedPermissions())
 
 }
 
@@ -75,21 +82,61 @@ fun askForBluetoothPeripheralPermission(launcher: ActivityResultLauncher<Array<S
 }
 
 
-fun Fragment.isLocationPermissionGranted(): Boolean {
+fun Context.isLocationPermissionGranted(): Boolean {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         // BLUETOOTH_SCAN permission has flag "neverForLocation", so location not needed
         true
     } else Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
-            requireContext().hasPermissions(locationPermission())
+            hasPermissions(locationPermission())
 }
 
 
-fun Fragment.askForLocationPermission() {
+fun Context.askForLocationPermission() {
     ActivityCompat.requestPermissions(
-        requireActivity(),
+        this as Activity,
         locationPermission(),
         PermissionExt.LOCATION_PERMISSION_REQUEST_CODE
     )
+}
+
+
+@Composable
+fun Context.isLocationPermissionRequired(askType: AskType, onGrantPermissionOk: () -> Unit): Boolean {
+    return if (isLocationPermissionGranted()) {
+        true
+    } else if (askType == AskType.InsistUntilSuccess) {
+        (this as Activity).buildPermissionDialog(onGrantPermissionOk).create().show()
+        isLocationPermissionRequired(AskType.InsistUntilSuccess,onGrantPermissionOk)
+    } else {
+        // prepare motivation message show motivation message
+        (this as Activity).buildPermissionDialog(onGrantPermissionOk).create().show()
+        false
+    }
+}
+
+@Composable
+fun Context.isBluetoothCentralPermissionGranted(askType: AskType, launcher: ActivityResultLauncher<Array<String>>): Boolean {
+    if (isBluetoothCentralPermissionGranted()) {
+        return true
+    } else if (askType == AskType.InsistUntilSuccess) {
+        askForBluetoothCentralPermission(launcher)
+        isBluetoothCentralPermissionGranted(AskType.InsistUntilSuccess,launcher)
+    } else {
+        askForBluetoothCentralPermission(launcher)
+    }
+    return false
+}
+
+fun Context.isBluetoothPeripheralPermissionGranted(askType: AskType, launcher: ActivityResultLauncher<Array<String>>): Boolean {
+    if (isBluetoothPeripheralPermissionGranted()) {
+        return true
+    } else if (askType == AskType.InsistUntilSuccess) {
+        askForBluetoothPeripheralPermission(launcher)
+        isBluetoothPeripheralPermissionGranted(AskType.InsistUntilSuccess,launcher)
+    } else {
+        askForBluetoothPeripheralPermission(launcher)
+    }
+    return false
 }
 
 enum class AskType {

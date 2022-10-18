@@ -16,6 +16,9 @@
     <string name="text_hint_write_value">String value for write</string>
     <string name="text_default_logs_value">Logs:</string>
 
+    <string name="central">Central</string>
+    <string name="peripheral">Peripheral:</string>
+
 
     <string name="text_static_is_advertising">Advertising</string>
     <string name="text_connected">Central connected</string>

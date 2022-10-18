@@ -92,6 +92,7 @@ class CentralFragment : BaseFragment() {
             }
             is CentralViewState.Indicate -> binding.textViewIndicateValue.text = viewState.message
             is CentralViewState.Read -> binding.textViewReadValue.text = viewState.message
+            else -> {}
         }
     }
 
@@ -111,7 +112,7 @@ class CentralFragment : BaseFragment() {
         }
 
         binding.buttonAdverties.setOnClickListener {
-            NavManager.navigate(CentralFragmentDirections.actionCentralFragmentToPeripheralFragment())
+          //  NavManager.navigate(CentralFragmentDirections.actionCentralFragmentToPeripheralFragment())
         }
 
     }
@@ -199,7 +200,7 @@ class CentralFragment : BaseFragment() {
     }
 
     private fun ensureBluetoothCanBeUsed(): Boolean {
-        if (isBluetoothCentralPermissionGranted(AskType.AskOnce, requestPermissionLauncher)) {
+       /* if (isBluetoothCentralPermissionGranted(AskType.AskOnce, requestPermissionLauncher)) {
             return if (bleViewModel.isBluetoothEnabled()) {
                 if (isLocationPermissionRequired(AskType.AskOnce,requestPermissionLauncher)) {
                     appendLog("Bluetooth ON, permissions OK, ready")
@@ -217,6 +218,8 @@ class CentralFragment : BaseFragment() {
         } else {
             appendLog("Bluetooth permissions denied")
             return false
-        }
+        }*/
+
+        return true
     }
 }

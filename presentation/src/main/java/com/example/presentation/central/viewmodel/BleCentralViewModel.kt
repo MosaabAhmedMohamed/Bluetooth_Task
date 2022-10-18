@@ -5,6 +5,10 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.util.Log
+import androidx.annotation.StringRes
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.ble.*
@@ -57,6 +61,12 @@ class BleCentralViewModel @Inject constructor(
     }
 
     fun isBluetoothEnabled() = bluetoothAdapter.isEnabled
+
+    fun getBluetoothOnOffState() = if (bluetoothAdapter.isEnabled) {
+        BluetoothAdapter.STATE_ON
+    } else {
+        BluetoothAdapter.STATE_OFF
+    }
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -114,6 +124,21 @@ class BleCentralViewModel @Inject constructor(
         viewModelScope.launch(dispatchers.main) {
             uiState.value = CentralViewState.Log(message)
         }
+
+        Log.d("testtestTAG", "appendLog:  ${message}")
+    }
+
+    fun onScanAndConnectChanged(it: Boolean) {
+            uiState.value = CentralViewState.UserWantsToScanAndConnect(it)
+    }
+
+    fun restartLifecycle() {
+            uiState.value = CentralViewState.OnBleRestartLifecycle
+
+    }
+
+    fun onPermissionGranted() {
+            uiState.value = CentralViewState.OnPermissionGranted
     }
 
     init {
@@ -121,23 +146,24 @@ class BleCentralViewModel @Inject constructor(
             gattUseCase.gattStateCallback()
                 .buffer(5)
                 .onEach {
-                   withContext(dispatchers.main){
-                       Log.d("testtestTAG", ":$it ")
-                       when (it) {
-                           is CentralGattDomainModel.ConnectionLifeCycle -> lifecycleState = it.state
-                           is CentralGattDomainModel.Indicate -> {
-                               uiState.value = CentralViewState.Indicate(it.message)
-                           }
-                           CentralGattDomainModel.Initial -> {}
-                           is CentralGattDomainModel.Log -> {
-                               appendLog(it.message)
-                           }
-                           is CentralGattDomainModel.Read -> {
-                               uiState.value = CentralViewState.Read(it.message)
-                           }
-                           CentralGattDomainModel.RestartLifecycle -> bleRestartLifecycle()
-                       }
-                   }
+                    withContext(dispatchers.main) {
+                        Log.d("testtestTAG", ":$it ")
+                        when (it) {
+                            is CentralGattDomainModel.ConnectionLifeCycle -> lifecycleState =
+                                it.state
+                            is CentralGattDomainModel.Indicate -> {
+                                uiState.value = CentralViewState.Indicate(it.message)
+                            }
+                            CentralGattDomainModel.Initial -> {}
+                            is CentralGattDomainModel.Log -> {
+                                appendLog(it.message)
+                            }
+                            is CentralGattDomainModel.Read -> {
+                                uiState.value = CentralViewState.Read(it.message)
+                            }
+                            CentralGattDomainModel.RestartLifecycle -> bleRestartLifecycle()
+                        }
+                    }
                 }
                 .launchIn(this)
         }

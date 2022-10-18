@@ -176,7 +176,7 @@ class PeripheralFragment : BaseFragment() {
     }
 
     private fun ensureBluetoothCanBeUsed(): Boolean {
-        return if (isBluetoothPeripheralPermissionGranted(
+        /*return if (isBluetoothPeripheralPermissionGranted(
                 AskType.AskOnce,
                 requestPermissionLauncher
             )
@@ -193,7 +193,8 @@ class PeripheralFragment : BaseFragment() {
         } else {
             appendLog("Bluetooth permissions denied")
             false
-        }
+        }*/
+        return true
     }
 
 

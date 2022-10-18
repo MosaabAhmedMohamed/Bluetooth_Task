@@ -3,6 +3,7 @@ package com.example.data.central.source.remote
 import android.bluetooth.*
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.example.core.ble.BLELifecycleState
 import com.example.core.ble.BleExt
 import com.example.core.ble.isReadable
@@ -75,6 +76,11 @@ class CentralGattDataSource @Inject constructor() {
                 gatt.disconnect()
                 return
             }
+
+            gatt.services.forEach {
+                Log.d("TAGTAGTAG", "onServicesDiscovered: ${it.uuid}")
+            }
+
 
             val service = gatt.getService(UUID.fromString(BleExt.SERVICE_UUID)) ?: run {
                 appendLog("ERROR: Service not found ${BleExt.SERVICE_UUID}, disconnecting")
