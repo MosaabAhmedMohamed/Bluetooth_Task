@@ -3,9 +3,13 @@ package com.example.presentation.base.ui.ext
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.core.app.ActivityCompat
@@ -76,6 +80,7 @@ fun Context.isBluetoothPeripheralPermissionGranted(): Boolean {
 }
 
 
+@Composable
 fun askForBluetoothPeripheralPermission(launcher: ActivityResultLauncher<Array<String>>) {
     if (peripheralWantedPermissions().isNotEmpty())
         launcher.launch(peripheralWantedPermissions())
@@ -127,6 +132,7 @@ fun Context.isBluetoothCentralPermissionGranted(askType: AskType, launcher: Acti
     return false
 }
 
+@Composable
 fun Context.isBluetoothPeripheralPermissionGranted(askType: AskType, launcher: ActivityResultLauncher<Array<String>>): Boolean {
     if (isBluetoothPeripheralPermissionGranted()) {
         return true
@@ -137,6 +143,40 @@ fun Context.isBluetoothPeripheralPermissionGranted(askType: AskType, launcher: A
         askForBluetoothPeripheralPermission(launcher)
     }
     return false
+}
+
+
+@Composable
+fun rememberBluetoothLauncher(onPermissionGranted: () -> Unit)
+        : ManagedActivityResultLauncher<Intent, ActivityResult> {
+    return androidx.activity.compose.rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            //granted
+            onPermissionGranted()
+        } else {
+            //deny
+        }
+    }
+}
+
+@Composable
+fun rememberPermissionsLauncherForActivityResult(onPermissionGranted: () -> Unit)
+        : ManagedActivityResultLauncher<Array<String>, Map<String, @JvmSuppressWildcards Boolean>> {
+    return androidx.activity.compose.rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val isGranted = permissions.values.contains(false).not()
+
+        if (isGranted) {
+            // PERMISSION GRANTED
+            onPermissionGranted()
+        } else {
+            // PERMISSION NOT GRANTED
+            //appendLog("ERROR: onRequestPermissionsResult requestCode=$isGranted not handled")
+        }
+    }
 }
 
 enum class AskType {

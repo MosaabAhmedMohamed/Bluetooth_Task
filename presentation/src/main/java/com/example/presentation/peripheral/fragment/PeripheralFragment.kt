@@ -1,8 +1,6 @@
 package com.example.presentation.peripheral.fragment
 
 import android.app.Activity
-import android.bluetooth.*
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -12,15 +10,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.example.presentation.R
 import com.example.presentation.base.ui.BaseFragment
-import com.example.presentation.base.ui.ext.*
 import com.example.presentation.databinding.FragmentPeripheralBinding
 import com.example.presentation.peripheral.viewmodel.BlePeripheralViewModel
-import com.example.presentation.peripheral.viewstate.PeripheralViewState
+import com.example.presentation.peripheral.viewstate.PeripheralActionState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -68,14 +63,14 @@ class PeripheralFragment : BaseFragment() {
     private fun collectViewState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                blePeripheralViewModel.state().collect(::renderState)
+               // blePeripheralViewModel.state().collect(::renderState)
             }
         }
     }
 
-    private fun renderState(viewState: PeripheralViewState) {
+    private fun renderState(viewState: PeripheralActionState) {
         when (viewState) {
-            is PeripheralViewState.Advertising -> {
+           /* is PeripheralViewState.Advertising -> {
                 binding.switchAdvertising.postDelayed({
                     if (viewState.isAdvertising != binding.switchAdvertising.isChecked)
                         binding.switchAdvertising.isChecked = viewState.isAdvertising
@@ -99,7 +94,8 @@ class PeripheralFragment : BaseFragment() {
             }
             is PeripheralViewState.Write -> {
                 binding.textViewCharForWrite.text = viewState.message
-            }
+            }*/
+            else -> {}
         }
     }
 

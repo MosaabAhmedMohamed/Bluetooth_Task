@@ -1,21 +1,16 @@
 package com.example.presentation.peripheral.viewmodel
 
 import android.bluetooth.*
-import androidx.annotation.StringRes
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.ble.BleAdvertiserManager
 import com.example.core.util.DispatcherProvider
-import com.example.domain.peripheral.model.PeripheralGattDomainModel
+import com.example.core.util.update
 import com.example.domain.peripheral.usecase.GattServerUseCase
-import com.example.presentation.peripheral.viewstate.PeripheralViewState
+import com.example.presentation.peripheral.viewstate.PeripheralActionState
+import com.example.presentation.peripheral.viewstate.PeripheralDataState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -27,8 +22,8 @@ class BlePeripheralViewModel @Inject constructor(
     private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
 
-    private val uiState: MutableStateFlow<PeripheralViewState> =
-        MutableStateFlow(PeripheralViewState.Initial)
+    private val uiState: MutableStateFlow<PeripheralDataState> =
+        MutableStateFlow(PeripheralDataState(actionState = PeripheralActionState.Initial))
 
     fun state() = uiState.asStateFlow()
 
@@ -37,14 +32,20 @@ class BlePeripheralViewModel @Inject constructor(
     private val bleAdvertiser by lazy {
         BleAdvertiserManager(bluetoothAdapter, {
             appendLog(it)
-        }, {
+        }, { advertising ->
             viewModelScope.launch(dispatchers.main) {
-                uiState.value = PeripheralViewState.Advertising(it)
+                uiState.update { it.copy(isAdvertising = advertising) }
             }
         })
     }
 
     fun isBluetoothEnabled() = bluetoothAdapter.isEnabled
+
+    fun getBluetoothOnOffState() = if (bluetoothAdapter.isEnabled) {
+        BluetoothAdapter.STATE_ON
+    } else {
+        BluetoothAdapter.STATE_OFF
+    }
 
     fun bleStartAdvertising() {
         viewModelScope.launch(dispatchers.main) {
@@ -76,13 +77,13 @@ class BlePeripheralViewModel @Inject constructor(
     private fun updateSubscribersUI() {
         val strSubscribers = "${subscribedDevices.count()} subscribers"
         viewModelScope.launch(dispatchers.main) {
-            uiState.value = PeripheralViewState.Subscribers(strSubscribers)
+            uiState.update { it.copy(subscribers = strSubscribers) }
         }
     }
 
     private fun appendLog(message: String) {
         viewModelScope.launch(dispatchers.main) {
-            uiState.value = PeripheralViewState.Log(message)
+            uiState.update { it.copy(log = message) }
         }
     }
 
@@ -90,27 +91,39 @@ class BlePeripheralViewModel @Inject constructor(
         gattServerUseCase.setReadMessage(readMessage)
     }
 
+    fun onStartAdvAdvertisingChanged(advertisingState: Boolean) {
+        uiState.update {
+            it.copy(
+                actionState = PeripheralActionState.OnStartAdvAdvertisingClicked(
+                    advertisingState
+                )
+            )
+        }
+    }
+
+    fun onPermissionGranted() {
+        uiState.update { it.copy(actionState = PeripheralActionState.OnPermissionGranted) }
+    }
+
     init {
         viewModelScope.launch(dispatchers.io) {
             gattServerUseCase.gattStateCallback()
-                .buffer(5)
-                .collect {
+                .collectLatest { domainState ->
                     withContext(dispatchers.main) {
-                        when (it) {
-                            is PeripheralGattDomainModel.ConnectionState -> uiState.value =
-                                PeripheralViewState.ConnectionState(it.state)
-                            PeripheralGattDomainModel.Initial -> {}
-                            is PeripheralGattDomainModel.Log -> appendLog(it.message)
-                            is PeripheralGattDomainModel.OnSubscribersChanged -> {
-                                subscribedDevices = it.subscribedDevices
-                                updateSubscribersUI()
-                            }
-                            is PeripheralGattDomainModel.Write -> uiState.value =
-                                PeripheralViewState.Write(it.message)
+                        subscribedDevices = domainState.subscribedDevices
+                        updateSubscribersUI()
+
+                        uiState.update {
+                            it.copy(
+                                connectionState = domainState.connectionState,
+                                log = domainState.log,
+                                write = domainState.write
+                            )
                         }
                     }
                 }
-        }
 
+        }
     }
 }
+

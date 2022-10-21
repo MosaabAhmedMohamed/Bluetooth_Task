@@ -20,9 +20,7 @@ import com.example.presentation.R
 import com.example.core.ble.BLELifecycleState
 import com.example.presentation.central.viewmodel.BleCentralViewModel
 import com.example.presentation.base.ui.BaseFragment
-import com.example.presentation.base.ui.NavManager
-import com.example.presentation.base.ui.ext.*
-import com.example.presentation.central.viewstate.CentralViewState
+import com.example.presentation.central.viewstate.CentralActionState
 import com.example.presentation.databinding.FragmentCenteralBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
@@ -68,14 +66,14 @@ class CentralFragment : BaseFragment() {
     private fun collectViewState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                bleViewModel.state().collect(::renderState)
+             //   bleViewModel.state().collect(::renderState)
             }
         }
     }
 
-    private fun renderState(viewState: CentralViewState) {
-        when (viewState) {
-            is CentralViewState.ConnectionLifeCycle -> {
+    private fun renderState(viewState: CentralActionState) {
+      /*  when (viewState) {
+            is CentralActionState.ConnectionLifeCycle -> {
                 binding.textViewLifecycleState.text = "State: ${viewState.state.name}"
 
                 if (viewState.state != BLELifecycleState.Connected) {
@@ -86,14 +84,14 @@ class CentralFragment : BaseFragment() {
 
                 appendLog("onDescriptorWrite ${viewState.state}")
             }
-            CentralViewState.Initial -> {}
-            is CentralViewState.Log -> {
+            CentralActionState.Initial -> {}
+            is CentralActionState.Log -> {
                 viewState.message?.let { appendLog(it) }
             }
-            is CentralViewState.Indicate -> binding.textViewIndicateValue.text = viewState.message
-            is CentralViewState.Read -> binding.textViewReadValue.text = viewState.message
+            is CentralActionState.Indicate -> binding.textViewIndicateValue.text = viewState.message
+            is CentralActionState.Read -> binding.textViewReadValue.text = viewState.message
             else -> {}
-        }
+        }*/
     }
 
     override fun onViewClicked() {
@@ -159,9 +157,9 @@ class CentralFragment : BaseFragment() {
                     appendLog("onReceive: Bluetooth ON")
                     lifecycleScope.launch {
                         bleViewModel.state().collectLatest {
-                            if (it == CentralViewState.ConnectionLifeCycle(BLELifecycleState.Disconnected)) {
+                           /* if (it == CentralActionState.ConnectionLifeCycle(BLELifecycleState.Disconnected)) {
                                 bleRestartLifecycle()
-                            }
+                            }*/
                         }
                     }
                 }

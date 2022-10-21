@@ -7,8 +7,10 @@ import com.example.core.ble.BleExt
 import com.example.data.peripheral.source.remote.model.PeripheralGattModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import java.util.*
 import javax.inject.Inject
+import kotlin.math.log
 
 class PeripheralGattDataSource @Inject constructor(
     private val context: Application,
@@ -16,7 +18,7 @@ class PeripheralGattDataSource @Inject constructor(
 ) {
 
     private val gattState: MutableStateFlow<PeripheralGattModel> =
-        MutableStateFlow(PeripheralGattModel.Initial)
+        MutableStateFlow(PeripheralGattModel())
 
     fun state() = gattState.asStateFlow()
     var readMessage: String = ""
@@ -27,11 +29,11 @@ class PeripheralGattDataSource @Inject constructor(
 
     private val gattServerCallback = object : BluetoothGattServerCallback() {
         override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
-            gattState.value = PeripheralGattModel.ConnectionState(newState)
+            gattState.update { it.copy(connectionState = newState) }
 
             if (newState != BluetoothProfile.STATE_CONNECTED) {
                 subscribedDevices.remove(device)
-                gattState.value = PeripheralGattModel.OnSubscribersChanged(subscribedDevices)
+                gattState.update { it.copy(subscribedDevices = subscribedDevices) }
             }
         }
 
@@ -89,7 +91,7 @@ class PeripheralGattDataSource @Inject constructor(
                 } else {
                     "\nresponse=notNeeded, value=\"$strValue\""
                 }
-                gattState.value = PeripheralGattModel.Write(strValue)
+                gattState.update { it.copy(write = strValue) }
             } else {
                 log += if (responseNeeded) {
                     gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, 0, null)
@@ -160,7 +162,7 @@ class PeripheralGattDataSource @Inject constructor(
                 if (responseNeeded) {
                     gattServer?.sendResponse(device, requestId, status, 0, null)
                 }
-                gattState.value = PeripheralGattModel.OnSubscribersChanged(subscribedDevices)
+                gattState.update { it.copy(subscribedDevices = subscribedDevices) }
             } else {
                 strLog += " unknown uuid=${descriptor.uuid}"
                 if (responseNeeded) {
@@ -222,14 +224,14 @@ class PeripheralGattDataSource @Inject constructor(
         gattServer?.close()
         gattServer = null
         appendLog("gattServer closed")
-        gattState.value = PeripheralGattModel.ConnectionState(-1)
+        gattState.update { it.copy(connectionState = -1) }
     }
 
     private fun appendLog(message: String) {
-        gattState.value = PeripheralGattModel.Log(message)
+        gattState.update { it.copy(log = message) }
     }
 
-    fun setReadMsg(readMessage: String){
+    fun setReadMsg(readMessage: String) {
         this.readMessage = readMessage
     }
 

@@ -4,18 +4,13 @@ import android.bluetooth.*
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.content.Context
-import android.util.Log
-import androidx.annotation.StringRes
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.ble.*
 import com.example.core.util.DispatcherProvider
-import com.example.domain.central.model.CentralGattDomainModel
 import com.example.domain.central.usecase.GattUseCase
-import com.example.presentation.central.viewstate.CentralViewState
+import com.example.presentation.central.viewstate.CentralActionState
+import com.example.presentation.central.viewstate.CentralDataState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -30,8 +25,8 @@ class BleCentralViewModel @Inject constructor(
     private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
 
-    private val uiState: MutableStateFlow<CentralViewState> =
-        MutableStateFlow(CentralViewState.Initial)
+    private val uiState: MutableStateFlow<CentralDataState> =
+        MutableStateFlow(CentralDataState(actionState = CentralActionState.Initial))
 
     fun state() = uiState.asStateFlow()
 
@@ -41,7 +36,9 @@ class BleCentralViewModel @Inject constructor(
             appendLog("status = $value")
 
             viewModelScope.launch(dispatchers.main) {
-                uiState.value = CentralViewState.ConnectionLifeCycle(field)
+                uiState.update {
+                    it.copy(state = field)
+                }
             }
         }
 
@@ -96,6 +93,7 @@ class BleCentralViewModel @Inject constructor(
         gattUseCase.closeGatt()
         gattUseCase.setConnectedGattToNull()
         lifecycleState = BLELifecycleState.Disconnected
+        uiState.update { it.copy(actionState = CentralActionState.Initial) }
     }
 
     fun bleRestartLifecycle(userWantsToScanAndConnect: Boolean = true) {
@@ -122,46 +120,43 @@ class BleCentralViewModel @Inject constructor(
 
     private fun appendLog(message: String) {
         viewModelScope.launch(dispatchers.main) {
-            uiState.value = CentralViewState.Log(message)
+            uiState.update {
+                it.copy(log = message)
+            }
         }
-
-        Log.d("testtestTAG", "appendLog:  ${message}")
     }
 
-    fun onScanAndConnectChanged(it: Boolean) {
-            uiState.value = CentralViewState.UserWantsToScanAndConnect(it)
+    fun onScanAndConnectChanged(userWantsToScanAndConnect: Boolean) {
+        uiState.update {
+            it.copy(
+                userWantsToScanAndConnect = userWantsToScanAndConnect
+            )
+        }
     }
 
     fun restartLifecycle() {
-            uiState.value = CentralViewState.OnBleRestartLifecycle
-
+        uiState.update {
+            it.copy(actionState = CentralActionState.OnBleRestartLifecycle)
+        }
     }
 
     fun onPermissionGranted() {
-            uiState.value = CentralViewState.OnPermissionGranted
+        uiState.update {
+            it.copy(actionState = CentralActionState.OnPermissionGranted)
+        }
     }
 
     init {
         viewModelScope.launch(dispatchers.io) {
             gattUseCase.gattStateCallback()
                 .buffer(5)
-                .onEach {
+                .onEach { domainState ->
                     withContext(dispatchers.main) {
-                        Log.d("testtestTAG", ":$it ")
-                        when (it) {
-                            is CentralGattDomainModel.ConnectionLifeCycle -> lifecycleState =
-                                it.state
-                            is CentralGattDomainModel.Indicate -> {
-                                uiState.value = CentralViewState.Indicate(it.message)
-                            }
-                            CentralGattDomainModel.Initial -> {}
-                            is CentralGattDomainModel.Log -> {
-                                appendLog(it.message)
-                            }
-                            is CentralGattDomainModel.Read -> {
-                                uiState.value = CentralViewState.Read(it.message)
-                            }
-                            CentralGattDomainModel.RestartLifecycle -> bleRestartLifecycle()
+                        lifecycleState = domainState.state
+                        appendLog(domainState.log)
+                        if (domainState.isRestartLifecycle) bleRestartLifecycle()
+                        uiState.update {
+                            it.copy(indicate = domainState.indicate, read = domainState.read)
                         }
                     }
                 }

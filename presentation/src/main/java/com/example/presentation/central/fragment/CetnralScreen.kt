@@ -1,15 +1,12 @@
 package com.example.presentation.central.fragment
 
 
-import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -25,17 +22,13 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.core.ble.BLELifecycleState
 import com.example.presentation.R
 import com.example.presentation.base.ui.HomeBottomTab
-import com.example.presentation.base.ui.ext.AskType
-import com.example.presentation.base.ui.ext.isBluetoothCentralPermissionGranted
-import com.example.presentation.base.ui.ext.isLocationPermissionRequired
-import com.example.presentation.base.ui.ext.locationPermission
+import com.example.presentation.base.ui.ext.*
 import com.example.presentation.base.ui.theme.purple200
 import com.example.presentation.central.viewmodel.BleCentralViewModel
-import com.example.presentation.central.viewstate.CentralViewState
+import com.example.presentation.central.viewstate.CentralActionState
+import com.example.presentation.central.viewstate.CentralDataState
 import com.google.accompanist.insets.navigationBarsHeight
 import com.google.accompanist.insets.navigationBarsPadding
-import kotlinx.coroutines.flow.buffer
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onEach
 
 @Composable
@@ -94,106 +87,106 @@ private fun PosterDetailsBody(viewModel: BleCentralViewModel) {
         val (autoconnect, autoconnectSwitch, connectionState, subscriptionState, notificationMessage) = createRefs()
         val checkedState = remember { mutableStateOf(false) }
         val bleOnOffState = remember { mutableStateOf(viewModel.getBluetoothOnOffState()) }
+        val actionState = remember { mutableStateOf<CentralActionState>(CentralActionState.Initial) }
 
         val state = viewModel.state()
             .onEach {
                 //appendLog("state$it" )
             }
-            .collectAsState(CentralViewState.Initial).value
+            .collectAsState(CentralDataState(actionState = CentralActionState.Initial)).value
 
-        when (state) {
-            is CentralViewState.ConnectionLifeCycle -> {
-                Text(
-                    text = "State: ${state.state.name}",
-                    style = MaterialTheme.typography.body2,
-                    modifier = Modifier
-                        .constrainAs(connectionState) {
-                            top.linkTo(autoconnect.bottom)
-                        }
-                        .padding(16.dp)
-                )
+        if (actionState.value != state.actionState) {
+            actionState.value = state.actionState
+            when (state.actionState) {
+                is CentralActionState.Initial -> {}
+                is CentralActionState.OnBleRestartLifecycle -> {
+                    appendLog("state : OnBleRestartLifecycle")
 
-                val subscriptionMsg = if (state.state != BLELifecycleState.Connected) {
-                    stringResource(id = R.string.text_not_subscribed)
-                } else if (state.state == BLELifecycleState.Connected) {
-                    stringResource(id = R.string.text_subscribed)
-                } else {
-                    stringResource(id = R.string.text_not_subscribed)
-                }
-
-                Text(
-                    text = subscriptionMsg,
-                    style = MaterialTheme.typography.body2,
-                    modifier = Modifier
-                        .constrainAs(subscriptionState) {
-                            top.linkTo(connectionState.bottom)
-                        }
-                        .padding(16.dp)
-                )
-
-            }
-            is CentralViewState.Indicate -> {
-                Text(
-                    text = stringResource(id = R.string.text_static_indicate_hint).plus(" ${state.message}"),
-                    style = MaterialTheme.typography.body2,
-                    modifier = Modifier
-                        .constrainAs(notificationMessage) {
-                            top.linkTo(subscriptionState.bottom)
-                        }
-                        .padding(16.dp)
-                )
-            }
-            is CentralViewState.Initial -> {}
-            is CentralViewState.Log -> {
-                state.message?.let { appendLog(it) }
-            }
-            is CentralViewState.Read -> {}
-            is CentralViewState.UserWantsToScanAndConnect -> {
-                SystemBroadcastReceiver(isChecked = state.state, onBleEvent = { intent ->
-                    bleOnOffState.value = intent?.getIntExtra(
-                        BluetoothAdapter.EXTRA_STATE,
-                        BluetoothAdapter.STATE_OFF
-                    ) ?: BluetoothAdapter.STATE_OFF
-                }, onBleRestartLifecycle = {
-                    if (checkedState.value)
-                        viewModel.restartLifecycle()
-                })
-                checkedState.value = state.state
-            }
-            is CentralViewState.OnBleRestartLifecycle -> {
-                appendLog("state : OnBleRestartLifecycle" )
-
-                    bleRestartLifecycle(viewModel.isBluetoothEnabled(),
+                    BleRestartLifecycle(viewModel.isBluetoothEnabled(),
                         onPermissionGranted = {
                             viewModel.onPermissionGranted()
                         }, onBleRestartLifecycle = {
                             viewModel.bleRestartLifecycle(checkedState.value)
                         })
+                }
+                is CentralActionState.OnPermissionGranted -> {
+                    PrepareAndStartBleScan(
+                        isBluetoothEnabled = viewModel.isBluetoothEnabled(),
+                        onInitViewModel = {
+                            viewModel.init()
+                        })
+                }
             }
-            is CentralViewState.OnPermissionGranted -> {
-                prepareAndStartBleScan(
-                    isBluetoothEnabled = viewModel.isBluetoothEnabled(),
-                    onInitViewModel = {
-                        viewModel.init()
-                    })
-            }
-
         }
 
-       /* when (bleOnOffState.value) {
-            BluetoothAdapter.STATE_ON -> {
-                appendLog("onReceive: Bluetooth ON")
-                if (state == CentralViewState.ConnectionLifeCycle(BLELifecycleState.Disconnected) && checkedState.value && viewModel.isBluetoothEnabled().not()) {
+        appendLog(state.log)
+
+        SystemBroadcastReceiver(
+            isChecked = state.userWantsToScanAndConnect,
+            onBleEvent = { intent ->
+                bleOnOffState.value = intent?.getIntExtra(
+                    BluetoothAdapter.EXTRA_STATE,
+                    BluetoothAdapter.STATE_OFF
+                ) ?: BluetoothAdapter.STATE_OFF
+            },
+            onBleRestartLifecycle = {
+                if (checkedState.value)
                     viewModel.restartLifecycle()
-                }
-            }
-            BluetoothAdapter.STATE_OFF -> {
-                if (checkedState.value.not() || viewModel.isBluetoothEnabled()) {
+                else
                     viewModel.bleEndLifecycle()
+
+            })
+        checkedState.value = state.userWantsToScanAndConnect
+
+
+        Text(
+            text = "State: ${state.state.name}",
+            style = MaterialTheme.typography.body2,
+            modifier = Modifier
+                .constrainAs(connectionState) {
+                    top.linkTo(autoconnect.bottom)
+                    start.linkTo(parent.start)
                 }
-                appendLog("onReceive: Bluetooth OFF")
-            }
-        }*/
+                .padding(16.dp)
+        )
+
+        Text(
+            text = subscriptionMsg(state.state),
+            style = MaterialTheme.typography.body2,
+            modifier = Modifier
+                .constrainAs(subscriptionState) {
+                    top.linkTo(connectionState.bottom)
+                    start.linkTo(parent.start)
+                }
+                .padding(16.dp)
+        )
+
+
+        Text(
+            text = stringResource(id = R.string.text_static_indicate_hint).plus(" ${state.indicate}"),
+            style = MaterialTheme.typography.body2,
+            modifier = Modifier
+                .constrainAs(notificationMessage) {
+                    top.linkTo(subscriptionState.bottom)
+                    start.linkTo(parent.start)
+                }
+                .padding(16.dp)
+        )
+
+        /* when (bleOnOffState.value) {
+             BluetoothAdapter.STATE_ON -> {
+                 appendLog("onReceive: Bluetooth ON")
+                 if (state == CentralViewState.ConnectionLifeCycle(BLELifecycleState.Disconnected) && checkedState.value && viewModel.isBluetoothEnabled().not()) {
+                     viewModel.restartLifecycle()
+                 }
+             }
+             BluetoothAdapter.STATE_OFF -> {
+                 if (checkedState.value.not() || viewModel.isBluetoothEnabled()) {
+                     viewModel.bleEndLifecycle()
+                 }
+                 appendLog("onReceive: Bluetooth OFF")
+             }
+         }*/
 
         Text(
             text = stringResource(R.string.text_static_autoconnect),
@@ -203,6 +196,7 @@ private fun PosterDetailsBody(viewModel: BleCentralViewModel) {
             modifier = Modifier
                 .constrainAs(autoconnect) {
                     top.linkTo(parent.top)
+                    start.linkTo(parent.start)
                 }
                 .padding(start = 16.dp, top = 12.dp)
         )
@@ -225,27 +219,39 @@ private fun PosterDetailsBody(viewModel: BleCentralViewModel) {
 }
 
 @Composable
+private fun subscriptionMsg(state: BLELifecycleState): String {
+    val subscriptionMsg = if (state == BLELifecycleState.Connected) {
+        stringResource(id = R.string.text_subscribed)
+    } else {
+        stringResource(id = R.string.text_not_subscribed)
+    }
+    return subscriptionMsg
+}
+
+@Composable
 fun SystemBroadcastReceiver(
     isChecked: Boolean,
     onBleEvent: (intent: Intent?) -> Unit,
     onBleRestartLifecycle: () -> Unit
 ) {
-
-
-    // Grab the current context in this part of the UI tree
     val context = LocalContext.current
+    HandleBluetoothBroadcastLifecycle(context, onBleEvent, isChecked)
+    onBleRestartLifecycle.invoke()
+}
 
-
-    // If either context or systemAction changes, unregister and register again
+@Composable
+private fun HandleBluetoothBroadcastLifecycle(
+    context: Context,
+    onBleEvent: (intent: Intent?) -> Unit,
+    isChecked: Boolean
+) {
     DisposableEffect(context) {
-
         val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
         val bleBroadcast = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 onBleEvent.invoke(intent)
             }
         }
-
         when (isChecked) {
             true -> {
                 context.registerReceiver(bleBroadcast, filter)
@@ -256,23 +262,20 @@ fun SystemBroadcastReceiver(
         }
         // When the effect leaves the Composition, remove the callback
         onDispose {
-            // context.unregisterReceiver(bleBroadcast)
+            LocalBroadcastManager.getInstance(context).unregisterReceiver(bleBroadcast)
         }
     }
-
-    onBleRestartLifecycle.invoke()
 }
 
 @Composable
-private fun prepareAndStartBleScan(isBluetoothEnabled: Boolean, onInitViewModel: () -> Unit) {
+private fun PrepareAndStartBleScan(isBluetoothEnabled: Boolean, onInitViewModel: () -> Unit) {
     if (ensureBluetoothCanBeUsed(isBluetoothEnabled) {}) {
         onInitViewModel()
     }
-
 }
 
 @Composable
-private fun bleRestartLifecycle(
+private fun BleRestartLifecycle(
     isBluetoothEnabled: Boolean,
     onPermissionGranted: () -> Unit,
     onBleRestartLifecycle: () -> Unit
@@ -287,38 +290,12 @@ private fun ensureBluetoothCanBeUsed(
     isBluetoothEnabled: Boolean,
     onPermissionGranted: () -> Unit
 ): Boolean {
-
-    appendLog("ensureBluetoothCanBeUsed")
-
-    val requestBluetooth = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            //granted
-            //prepareAndStartBleScan()
-            onPermissionGranted()
-        } else {
-            //deny
-        }
-    }
-
-    val requestPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val isGranted = permissions.values.contains(false).not()
-
-        if (isGranted) {
-            // PERMISSION GRANTED
-            //prepareAndStartBleScan()
-            onPermissionGranted()
-        } else {
-            // PERMISSION NOT GRANTED
-            appendLog("ERROR: onRequestPermissionsResult requestCode=$isGranted not handled")
-        }
-    }
-
+    val requestBluetooth = rememberBluetoothLauncher(onPermissionGranted)
+    val requestPermissionLauncher =
+        rememberPermissionsLauncherForActivityResult(onPermissionGranted)
 
     val context = LocalContext.current
+
     if (context.isBluetoothCentralPermissionGranted(AskType.AskOnce, requestPermissionLauncher)) {
         return if (isBluetoothEnabled) {
             if (context.isLocationPermissionRequired(AskType.AskOnce, onGrantPermissionOk = {
