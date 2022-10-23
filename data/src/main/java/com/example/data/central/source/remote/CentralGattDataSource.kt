@@ -3,13 +3,11 @@ package com.example.data.central.source.remote
 import android.bluetooth.*
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import com.example.core.ble.BLELifecycleState
 import com.example.core.ble.BleExt
 import com.example.core.ble.isReadable
 import com.example.core.ble.isWriteable
 import com.example.data.central.source.remote.model.CentralGattModel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update

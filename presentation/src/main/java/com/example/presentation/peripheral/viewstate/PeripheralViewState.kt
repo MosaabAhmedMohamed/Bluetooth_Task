@@ -5,5 +5,7 @@ data class PeripheralViewState(
     val logs: MutableList<String> = mutableListOf(),
     val write: String = "",
     val subscribers: String = "0",
-    val isAdvertising: Boolean = false
+    val isAdvertising: Boolean = false,
+    val isUserWantsToStartAdvertising: Boolean = false,
+    val isAskingForEnableBluetooth: Boolean = false
 )

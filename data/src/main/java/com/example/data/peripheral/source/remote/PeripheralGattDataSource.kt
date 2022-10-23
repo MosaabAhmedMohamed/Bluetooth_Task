@@ -209,12 +209,12 @@ class PeripheralGattDataSource @Inject constructor(
         service.addCharacteristic(charForWrite)
         service.addCharacteristic(charForIndicate)
 
-        val result = gattServer.addService(service)
+        val result = gattServer?.addService(service)
         this.gattServer = gattServer
         appendLog(
             "addService " + when (result) {
                 true -> "OK"
-                false -> "fail"
+                else -> "fail"
             }
         )
     }

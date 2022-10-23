@@ -80,8 +80,14 @@ fun CentralScreen(
 private fun CentralScreenBody(viewModel: BleCentralViewModel) {
     val viewState = viewModel.state().collectAsState().value
     val sideEffect = viewModel.sideEffect().collectAsState().value
-    val checkedState = remember { mutableStateOf(false) }
     val currentSideEffect = remember { mutableStateOf<CentralSideEffect>(CentralSideEffect.Initial) }
+    val requestBluetoothLauncher = rememberBluetoothLauncher {
+        viewModel.askingForEnableBluetoothStatus(false)
+        if (it)
+            viewModel.onPermissionGranted()
+        else
+            viewModel.onPermissionGranted()
+    }
 
     ConstraintLayout(
         modifier = Modifier
@@ -98,10 +104,8 @@ private fun CentralScreenBody(viewModel: BleCentralViewModel) {
                 }
                 is CentralSideEffect.OnBleRestartLifecycle -> {
                     BleRestartLifecycle(viewModel.isBluetoothEnabled(),
-                        onPermissionGranted = {
-                            viewModel.onPermissionGranted()
-                        }, onBleRestartLifecycle = {
-                            viewModel.bleRestartLifecycle(checkedState.value)
+                        onBleRestartLifecycle = {
+                            viewModel.bleRestartLifecycle(viewState.isUserWantsToScanAndConnect)
                         })
                 }
                 is CentralSideEffect.OnPermissionGranted -> {
@@ -119,7 +123,7 @@ private fun CentralScreenBody(viewModel: BleCentralViewModel) {
                             }
                         }
                         BluetoothAdapter.STATE_OFF -> {
-                            if (checkedState.value.not()) {
+                            if (viewState.isUserWantsToScanAndConnect.not()) {
                                 viewModel.bleEndLifecycle()
                             }
                         }
@@ -129,7 +133,7 @@ private fun CentralScreenBody(viewModel: BleCentralViewModel) {
         }
 
         BleBroadcastReceiver(
-            isChecked = viewState.userWantsToScanAndConnect,
+            isChecked = viewState.isUserWantsToScanAndConnect,
             onBleEvent = { intent ->
                 val bleState = intent?.getIntExtra(
                     BluetoothAdapter.EXTRA_STATE,
@@ -139,7 +143,7 @@ private fun CentralScreenBody(viewModel: BleCentralViewModel) {
                 viewModel.onBleStateChanged(bleState)
             },
             onBleRestartLifecycle = {
-                if (checkedState.value)
+                if (viewState.isUserWantsToScanAndConnect)
                     viewModel.restartLifecycle()
                 else
                     viewModel.bleEndLifecycle()
@@ -160,10 +164,8 @@ private fun CentralScreenBody(viewModel: BleCentralViewModel) {
         )
 
         Switch(
-            checked = checkedState.value,
+            checked = viewState.isUserWantsToScanAndConnect,
             onCheckedChange = {
-                checkedState.value = it
-
                 viewModel.onScanAndConnectChanged(it)
             },
             modifier = Modifier
@@ -186,7 +188,11 @@ private fun CentralScreenBody(viewModel: BleCentralViewModel) {
         )
 
         Text(
-            text = stringResource(id = R.string.text_subscription_state).plus(subscriptionMsg(viewState.state)),
+            text = stringResource(id = R.string.text_subscription_state).plus(
+                subscriptionMsg(
+                    viewState.state
+                )
+            ),
             style = MaterialTheme.typography.body2,
             modifier = Modifier
                 .constrainAs(subscriptionStateTv) {
@@ -208,21 +214,30 @@ private fun CentralScreenBody(viewModel: BleCentralViewModel) {
                 .padding(16.dp)
         )
 
-        LogsView(modifier = Modifier
-            .constrainAs(logsView) {
-                top.linkTo(notificationMessageTv.bottom)
-                end.linkTo(parent.end)
-                start.linkTo(parent.start)
-            }
-            .padding(top = 16.dp), logs = viewState.logs,
-            onClearLogClicked = {
-                viewModel.clearLog()
-            })
+        if (viewState.logs.isNotEmpty())
+            LogsView(modifier = Modifier
+                .constrainAs(logsView) {
+                    top.linkTo(notificationMessageTv.bottom)
+                    end.linkTo(parent.end)
+                    start.linkTo(parent.start)
+                }
+                .padding(top = 16.dp), logs = viewState.logs,
+                onClearLogClicked = {
+                    viewModel.clearLog()
+                })
 
-        checkPermissionRequest(viewState.userWantsToScanAndConnect) {
+        checkPermissionRequest(viewState.isUserWantsToScanAndConnect) {
             viewModel.onPermissionGranted()
         }
 
+        val context = LocalContext.current
+
+        if (viewModel.isAskForEnableBluetooth() && context.isLocationPermissionGranted()) {
+            viewModel.askingForEnableBluetoothStatus(true)
+            SideEffect {
+                requestBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+            }
+        }
     }
 }
 
@@ -296,7 +311,7 @@ private fun HandleBluetoothBroadcastLifecycle(
 
 @Composable
 private fun PrepareAndStartBleScan(isBluetoothEnabled: Boolean, onInitViewModel: () -> Unit) {
-    if (ensureBluetoothCanBeUsed(isBluetoothEnabled) {}) {
+    if (ensureBluetoothCanBeUsed(isBluetoothEnabled)) {
         onInitViewModel()
     }
 }
@@ -304,31 +319,22 @@ private fun PrepareAndStartBleScan(isBluetoothEnabled: Boolean, onInitViewModel:
 @Composable
 private fun BleRestartLifecycle(
     isBluetoothEnabled: Boolean,
-    onPermissionGranted: () -> Unit,
     onBleRestartLifecycle: () -> Unit
 ) {
-    if (ensureBluetoothCanBeUsed(isBluetoothEnabled, onPermissionGranted)) {
+    if (ensureBluetoothCanBeUsed(isBluetoothEnabled)) {
         onBleRestartLifecycle()
     }
 }
 
 @Composable
 private fun ensureBluetoothCanBeUsed(
-    isBluetoothEnabled: Boolean,
-    onPermissionGranted: () -> Unit
+    isBluetoothEnabled: Boolean
 ): Boolean {
-    val requestBluetooth = rememberBluetoothLauncher(onPermissionGranted)
-
     val context = LocalContext.current
-
     return if (context.isBluetoothCentralPermissionGranted()) {
         if (isBluetoothEnabled) {
             context.isLocationPermissionGranted()
         } else {
-            // start activity for the request
-            SideEffect {
-                requestBluetooth.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
-            }
             false
         }
     } else {

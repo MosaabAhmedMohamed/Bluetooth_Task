@@ -1,7 +1,6 @@
 package com.example.presentation.peripheral.viewmodel
 
 import android.bluetooth.*
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.ble.BleAdvertiserManager
@@ -47,10 +46,23 @@ class BlePeripheralViewModel @Inject constructor(
 
     fun isBluetoothEnabled() = bluetoothAdapter.isEnabled
 
+    fun isAskForEnableBluetooth() = isBluetoothEnabled().not() &&
+            uiState.value.isUserWantsToStartAdvertising &&
+            uiState.value.isAskingForEnableBluetooth.not()
+
     fun getBluetoothOnOffState() = if (bluetoothAdapter.isEnabled) {
         BluetoothAdapter.STATE_ON
     } else {
         BluetoothAdapter.STATE_OFF
+    }
+
+    fun onUserWantsToStartAdvertisingChanged(userWantsToStartAdvertising: Boolean) {
+        uiState.update {
+            it.copy(
+                isUserWantsToStartAdvertising = userWantsToStartAdvertising
+            )
+        }
+        onStartAdvertisingChanged()
     }
 
     fun bleStartAdvertising() {
@@ -109,31 +121,16 @@ class BlePeripheralViewModel @Inject constructor(
         gattServerUseCase.setReadMessage(readMessage)
     }
 
-    fun onStartAdvAdvertisingChanged(advertisingState: Boolean) {
-        sideEffectState.value = PeripheralSideEffect.OnStartAdvAdvertisingClicked(advertisingState)
+    private fun onStartAdvertisingChanged() {
+        sideEffectState.value = PeripheralSideEffect.OnStartAdvertisingClicked
     }
 
     fun onPermissionGranted() {
-        sideEffectState.value = PeripheralSideEffect.OnPermissionGranted
+        onStartAdvertisingChanged()
     }
 
-    private fun onDisconnected() {
+    fun onDisconnected() {
         sideEffectState.value = PeripheralSideEffect.OnDisconnected
-    }
-
-
-    init {
-        viewModelScope.launch(dispatchers.io) {
-            gattServerUseCase.gattStateCallback()
-                .onEach {
-                    Log.d("testtestTAG", "   :   ${it}")
-                }
-                .collectLatest { domainState ->
-                    updateUiState(domainState)
-                    handleConnectionState(domainState.connectionState)
-                }
-
-        }
     }
 
     private fun updateUiState(domainState: PeripheralGattDomainModel) {
@@ -148,13 +145,20 @@ class BlePeripheralViewModel @Inject constructor(
         }
     }
 
-    private fun handleConnectionState(connectionState: Int) {
-        if (uiState.value.isAdvertising)
-            if (connectionState == BluetoothProfile.STATE_DISCONNECTED ||
-                connectionState == BluetoothProfile.STATE_DISCONNECTING
-            ) {
-                onDisconnected()
-            }
+    fun askingForEnableBluetoothStatus(isAsking: Boolean) {
+        uiState.update {
+            it.copy(isAskingForEnableBluetooth = isAsking)
+        }
+    }
+
+    init {
+        viewModelScope.launch(dispatchers.io) {
+            gattServerUseCase.gattStateCallback()
+                .collectLatest { domainState ->
+                    updateUiState(domainState)
+                }
+
+        }
     }
 }
 

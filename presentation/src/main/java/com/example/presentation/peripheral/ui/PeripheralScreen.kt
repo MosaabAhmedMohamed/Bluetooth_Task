@@ -72,20 +72,26 @@ fun PeripheralScreen(
 
 @Composable
 private fun PeripheralScreenBody(viewModel: BlePeripheralViewModel) {
-    val checkedState = remember { mutableStateOf(false) }
     var editTextCharForIndicate by rememberSaveable { mutableStateOf("Android indication") }
-    val viewState = viewModel.state()
-        .collectAsState(PeripheralViewState()).value
+    val viewState = viewModel.state().collectAsState().value
     val sideEffect = viewModel.sideEffect().collectAsState().value
     val currentSideEffect =
         remember { mutableStateOf<PeripheralSideEffect>(PeripheralSideEffect.Initial) }
+    val requestBluetooth = rememberBluetoothLauncher {
+        viewModel.askingForEnableBluetoothStatus(false)
+        currentSideEffect.value = PeripheralSideEffect.NON
+        if (it)
+            viewModel.onPermissionGranted()
+        else
+            viewModel.onDisconnected()
+    }
 
     ConstraintLayout(
         modifier = Modifier
             .background(MaterialTheme.colors.background)
             .fillMaxSize()
     ) {
-        val (advertising, switchAdvertising, connectionState, subscriptionState, notificationMessage, indicateTf, notifyBtn, logsView) = createRefs()
+        val (advertising, switchAdvertising, connectionState, subscriptionState, indicateTf, notifyBtn, logsView) = createRefs()
 
         Text(
             text = stringResource(R.string.text_static_is_advertising),
@@ -101,10 +107,9 @@ private fun PeripheralScreenBody(viewModel: BlePeripheralViewModel) {
         )
 
         Switch(
-            checked = checkedState.value,
+            checked = viewState.isUserWantsToStartAdvertising,
             onCheckedChange = {
-                checkedState.value = it
-                viewModel.onStartAdvAdvertisingChanged(it)
+                viewModel.onUserWantsToStartAdvertisingChanged(it)
             },
             modifier = Modifier
                 .constrainAs(switchAdvertising) {
@@ -171,17 +176,18 @@ private fun PeripheralScreenBody(viewModel: BlePeripheralViewModel) {
             Text(text = stringResource(id = R.string.notify))
         }
 
-        LogsView(modifier = Modifier
-            .constrainAs(logsView) {
-                top.linkTo(notifyBtn.bottom)
-                end.linkTo(parent.end)
-                start.linkTo(parent.start)
-            }
-            .padding(top = 16.dp),
-            logs = viewState.logs,
-            onClearLogClicked = {
-                viewModel.clearLog()
-            })
+        if (viewState.logs.isNotEmpty())
+            LogsView(modifier = Modifier
+                .constrainAs(logsView) {
+                    top.linkTo(notifyBtn.bottom)
+                    end.linkTo(parent.end)
+                    start.linkTo(parent.start)
+                }
+                .padding(top = 16.dp),
+                logs = viewState.logs,
+                onClearLogClicked = {
+                    viewModel.clearLog()
+                })
 
         if (currentSideEffect.value != sideEffect) {
             currentSideEffect.value = sideEffect
@@ -197,11 +203,8 @@ private fun PeripheralScreenBody(viewModel: BlePeripheralViewModel) {
                             .padding(16.dp)
                     )
                 }
-                PeripheralSideEffect.OnPermissionGranted -> viewModel.onStartAdvAdvertisingChanged(
-                    checkedState.value
-                )
-                is PeripheralSideEffect.OnStartAdvAdvertisingClicked -> {
-                    if (sideEffect.state) {
+                is PeripheralSideEffect.OnStartAdvertisingClicked -> {
+                    if (viewState.isUserWantsToStartAdvertising) {
                         PrepareAndStartAdvertising(
                             isBluetoothEnabled = viewModel.isBluetoothEnabled(),
                             onPermissionGranted = {
@@ -220,13 +223,21 @@ private fun PeripheralScreenBody(viewModel: BlePeripheralViewModel) {
                     }
                 }
                 PeripheralSideEffect.OnDisconnected -> {
-                    checkedState.value = false
-                    viewModel.onStartAdvAdvertisingChanged(false)
+                   viewModel.onUserWantsToStartAdvertisingChanged(false)
                 }
+                PeripheralSideEffect.NON -> {}
+            }
+        }
+
+        if (viewModel.isAskForEnableBluetooth()) {
+            viewModel.askingForEnableBluetoothStatus(true)
+            SideEffect {
+                requestBluetooth.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
             }
         }
     }
 }
+
 
 @Composable
 private fun subscriptionMsg(viewState: PeripheralViewState) =
@@ -254,24 +265,13 @@ private fun ensureBluetoothCanBeUsed(
     isBluetoothEnabled: Boolean,
     onPermissionGranted: () -> Unit
 ): Boolean {
-    val requestBluetooth = rememberBluetoothLauncher(onPermissionGranted)
     val requestPermissionLauncher =
         rememberPermissionsLauncherForActivityResult(onPermissionGranted)
 
     val context = LocalContext.current
 
     return if (context.isBluetoothPeripheralPermissionGranted(requestPermissionLauncher)) {
-        if (isBluetoothEnabled) {
-            //appendLog("BLE ready for use")
-            true
-        } else {
-            // start activity for the request
-            SideEffect {
-                requestBluetooth.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
-            }
-            // appendLog("Bluetooth OFF")
-            false
-        }
+        isBluetoothEnabled
     } else {
         //appendLog("Bluetooth permissions denied")
         false

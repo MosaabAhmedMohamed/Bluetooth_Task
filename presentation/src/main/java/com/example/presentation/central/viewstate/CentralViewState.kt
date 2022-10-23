@@ -7,5 +7,6 @@ data class CentralViewState(
     val state: BLELifecycleState = BLELifecycleState.Disconnected,
     val read: String = "",
     val indicate: String = "",
-    val userWantsToScanAndConnect: Boolean = false
+    val isUserWantsToScanAndConnect: Boolean = false,
+    val isAskingForEnableBluetooth: Boolean = false
 )

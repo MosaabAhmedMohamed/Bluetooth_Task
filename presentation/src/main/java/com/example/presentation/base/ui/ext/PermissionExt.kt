@@ -27,6 +27,7 @@ import com.google.accompanist.permissions.*
 
 fun centralWantedPermissions() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
     listOf(
+        Manifest.permission.BLUETOOTH,
         Manifest.permission.BLUETOOTH_CONNECT,
         Manifest.permission.BLUETOOTH_SCAN,
     )
@@ -36,6 +37,7 @@ fun centralWantedPermissions() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODE
 
 fun peripheralWantedPermissions() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
     listOf(
+        Manifest.permission.BLUETOOTH,
         Manifest.permission.BLUETOOTH_CONNECT,
         Manifest.permission.BLUETOOTH_ADVERTISE,
     )
@@ -98,16 +100,17 @@ fun Context.isBluetoothPeripheralPermissionGranted(
 
 
 @Composable
-fun rememberBluetoothLauncher(onPermissionGranted: () -> Unit)
+fun rememberBluetoothLauncher(onPermissionGrantResult: (isGranted: Boolean) -> Unit)
         : ManagedActivityResultLauncher<Intent, ActivityResult> {
     return androidx.activity.compose.rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             //granted
-            onPermissionGranted()
+            onPermissionGrantResult.invoke(true)
         } else {
             //deny
+            onPermissionGrantResult.invoke(false)
         }
     }
 }
