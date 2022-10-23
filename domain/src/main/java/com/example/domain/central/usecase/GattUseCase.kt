@@ -5,7 +5,6 @@ import javax.inject.Inject
 
 class GattUseCase @Inject constructor(private val centralRepository: CentralRepository) {
 
-
     suspend fun gattStateCallback() = centralRepository.gattStateCallback()
 
     suspend fun gattCallback() = centralRepository.gattCallback()

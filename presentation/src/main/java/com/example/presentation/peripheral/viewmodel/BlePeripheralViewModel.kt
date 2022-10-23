@@ -5,12 +5,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.ble.BleAdvertiserManager
 import com.example.core.util.DispatcherProvider
-import com.example.core.util.update
 import com.example.domain.peripheral.usecase.GattServerUseCase
-import com.example.presentation.peripheral.viewstate.PeripheralActionState
-import com.example.presentation.peripheral.viewstate.PeripheralDataState
+import com.example.presentation.peripheral.viewstate.PeripheralSideEffect
+import com.example.presentation.peripheral.viewstate.PeripheralViewState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -22,10 +24,16 @@ class BlePeripheralViewModel @Inject constructor(
     private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
 
-    private val uiState: MutableStateFlow<PeripheralDataState> =
-        MutableStateFlow(PeripheralDataState(actionState = PeripheralActionState.Initial))
+    private val uiState: MutableStateFlow<PeripheralViewState> =
+        MutableStateFlow(PeripheralViewState())
 
     fun state() = uiState.asStateFlow()
+
+    private val sideEffectState: MutableStateFlow<PeripheralSideEffect> =
+        MutableStateFlow(PeripheralSideEffect.Initial)
+
+    fun sideEffect() = sideEffectState.asStateFlow()
+
 
     private var subscribedDevices = emptySet<BluetoothDevice>()
 
@@ -82,8 +90,20 @@ class BlePeripheralViewModel @Inject constructor(
     }
 
     private fun appendLog(message: String) {
+        viewModelScope.launch {
+            uiState.update {
+                val logs = it.logs
+                logs.add(0,message)
+                it.copy(logs = logs)
+            }
+        }
+    }
+
+    fun clearLog() {
         viewModelScope.launch(dispatchers.main) {
-            uiState.update { it.copy(log = message) }
+            uiState.update {
+                it.copy(logs = mutableListOf())
+            }
         }
     }
 
@@ -92,17 +112,12 @@ class BlePeripheralViewModel @Inject constructor(
     }
 
     fun onStartAdvAdvertisingChanged(advertisingState: Boolean) {
-        uiState.update {
-            it.copy(
-                actionState = PeripheralActionState.OnStartAdvAdvertisingClicked(
-                    advertisingState
-                )
-            )
-        }
+        sideEffectState.value = PeripheralSideEffect.OnStartAdvAdvertisingClicked(advertisingState)
+
     }
 
     fun onPermissionGranted() {
-        uiState.update { it.copy(actionState = PeripheralActionState.OnPermissionGranted) }
+        sideEffectState.value = PeripheralSideEffect.OnPermissionGranted
     }
 
     init {
@@ -112,11 +127,10 @@ class BlePeripheralViewModel @Inject constructor(
                     withContext(dispatchers.main) {
                         subscribedDevices = domainState.subscribedDevices
                         updateSubscribersUI()
-
+                        appendLog(domainState.log)
                         uiState.update {
                             it.copy(
                                 connectionState = domainState.connectionState,
-                                log = domainState.log,
                                 write = domainState.write
                             )
                         }

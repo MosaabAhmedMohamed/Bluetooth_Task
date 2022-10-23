@@ -1,13 +1,14 @@
-package com.example.presentation.peripheral.fragment
+package com.example.presentation.peripheral.ui
 
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothProfile
 import android.content.Intent
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -21,13 +22,13 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import com.example.presentation.R
 import com.example.presentation.base.ui.HomeBottomTab
 import com.example.presentation.base.ui.ext.*
+import com.example.presentation.base.ui.logs.LogsView
 import com.example.presentation.base.ui.theme.purple200
 import com.example.presentation.peripheral.viewmodel.BlePeripheralViewModel
-import com.example.presentation.peripheral.viewstate.PeripheralActionState
-import com.example.presentation.peripheral.viewstate.PeripheralDataState
+import com.example.presentation.peripheral.viewstate.PeripheralSideEffect
+import com.example.presentation.peripheral.viewstate.PeripheralViewState
 import com.google.accompanist.insets.navigationBarsHeight
 import com.google.accompanist.insets.navigationBarsPadding
-import kotlinx.coroutines.flow.onEach
 
 @Composable
 fun PeripheralScreen(
@@ -63,28 +64,26 @@ fun PeripheralScreen(
                 }
             }
         ) {
-            PosterDetailsBody(viewModel)
+            PeripheralScreenBody(viewModel)
         }
     }
 
 }
 
 @Composable
-private fun PosterDetailsBody(viewModel: BlePeripheralViewModel) {
+private fun PeripheralScreenBody(viewModel: BlePeripheralViewModel) {
+    val checkedState = remember { mutableStateOf(false) }
+    var editTextCharForIndicate by rememberSaveable { mutableStateOf("Android indication") }
+    val viewState = viewModel.state().collectAsState(PeripheralViewState()).value
+    val sideEffect = viewModel.sideEffect().collectAsState().value
+    val currentSideEffect = remember { mutableStateOf<PeripheralSideEffect>(PeripheralSideEffect.Initial) }
 
     ConstraintLayout(
         modifier = Modifier
             .background(MaterialTheme.colors.background)
             .fillMaxSize()
     ) {
-        val (advertising, switchAdvertising, connectionState, subscriptionState, notificationMessage, indicateTf, notifyBtn) = createRefs()
-        val checkedState = remember { mutableStateOf(false) }
-        val actionState = remember { mutableStateOf<PeripheralActionState>(PeripheralActionState.Initial) }
-        var editTextCharForIndicate by rememberSaveable { mutableStateOf("Android indication") }
-
-
-        val viewState = viewModel.state()
-            .collectAsState(PeripheralDataState(actionState = PeripheralActionState.Initial)).value
+        val (advertising, switchAdvertising, connectionState, subscriptionState, notificationMessage, indicateTf, notifyBtn, logsView) = createRefs()
 
         Text(
             text = stringResource(R.string.text_static_is_advertising),
@@ -122,19 +121,9 @@ private fun PosterDetailsBody(viewModel: BlePeripheralViewModel) {
                 }
                 .padding(16.dp)
         )
-        appendLog(viewState.log)
-        val subscriptionMsg =
-            if (viewState.connectionState == BluetoothProfile.STATE_CONNECTED) {
-                appendLog("Central did connect")
-                stringResource(id = R.string.text_connected)
-
-            } else {
-                appendLog("Central did disconnect")
-                stringResource(id = R.string.text_disconnected)
-            }
 
         Text(
-            text = "State: $subscriptionMsg",
+            text = stringResource(id = R.string.text_state).plus(subscriptionMsg(viewState)),
             style = MaterialTheme.typography.body2,
             modifier = Modifier
                 .constrainAs(connectionState) {
@@ -142,19 +131,22 @@ private fun PosterDetailsBody(viewModel: BlePeripheralViewModel) {
                 }
                 .padding(16.dp)
         )
-        
+
         TextField(
             value = editTextCharForIndicate,
             onValueChange = {
                 editTextCharForIndicate = it
             },
-            label = { Text("Indication") },
+            label = { Text(stringResource(id = R.string.send_notificatin)) },
             modifier = Modifier
                 .constrainAs(indicateTf) {
                     top.linkTo(subscriptionState.bottom)
                     start.linkTo(parent.start)
+                    end.linkTo(parent.end)
                 }
-                .padding(end = 16.dp)
+                .padding(start = 16.dp, end = 16.dp)
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
         )
 
         Button(onClick = {
@@ -163,22 +155,38 @@ private fun PosterDetailsBody(viewModel: BlePeripheralViewModel) {
             defaultElevation = 10.dp,
             pressedElevation = 15.dp,
             disabledElevation = 0.dp
+        ), colors = ButtonDefaults.buttonColors(
+            contentColor = Color.White
         ), modifier = Modifier
             .constrainAs(notifyBtn) {
-                start.linkTo(indicateTf.end)
+                start.linkTo(parent.start)
                 end.linkTo(parent.end)
-                top.linkTo(subscriptionState.bottom)
+                top.linkTo(indicateTf.bottom)
             }
-            .padding(end = 16.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp,)
+            .fillMaxWidth()
         ) {
-            Text(text = "Notify")
+            Text(text = stringResource(id = R.string.notify))
         }
-        if (actionState.value != viewState.actionState){
-            actionState.value = viewState.actionState
-            when (viewState.actionState) {
-                PeripheralActionState.Initial -> {
+
+        LogsView(modifier = Modifier
+            .constrainAs(logsView) {
+                top.linkTo(notifyBtn.bottom)
+                end.linkTo(parent.end)
+                start.linkTo(parent.start)
+            }
+            .padding(top = 16.dp),
+            logs = viewState.logs,
+            onClearLogClicked = {
+                viewModel.clearLog()
+            })
+
+        if (currentSideEffect.value != sideEffect) {
+            currentSideEffect.value = sideEffect
+            when (sideEffect) {
+                PeripheralSideEffect.Initial -> {
                     Text(
-                        text = "State: ${stringResource(id = R.string.text_disconnected)}",
+                        text =  stringResource(id = R.string.text_state).plus(stringResource(id = R.string.text_disconnected)) ,
                         style = MaterialTheme.typography.body2,
                         modifier = Modifier
                             .constrainAs(connectionState) {
@@ -187,11 +195,11 @@ private fun PosterDetailsBody(viewModel: BlePeripheralViewModel) {
                             .padding(16.dp)
                     )
                 }
-                PeripheralActionState.OnPermissionGranted -> viewModel.onStartAdvAdvertisingChanged(
+                PeripheralSideEffect.OnPermissionGranted -> viewModel.onStartAdvAdvertisingChanged(
                     checkedState.value
                 )
-                is PeripheralActionState.OnStartAdvAdvertisingClicked -> {
-                    if (viewState.actionState.state) {
+                is PeripheralSideEffect.OnStartAdvAdvertisingClicked -> {
+                    if (sideEffect.state) {
                         PrepareAndStartAdvertising(
                             isBluetoothEnabled = viewModel.isBluetoothEnabled(),
                             onPermissionGranted = {
@@ -211,9 +219,15 @@ private fun PosterDetailsBody(viewModel: BlePeripheralViewModel) {
                 }
             }
         }
-
     }
 }
+
+@Composable
+private fun subscriptionMsg(viewState: PeripheralViewState) =
+    if (viewState.connectionState == BluetoothProfile.STATE_CONNECTED)
+        stringResource(id = R.string.text_connected)
+    else
+        stringResource(id = R.string.text_disconnected)
 
 
 @Composable
@@ -240,37 +254,21 @@ private fun ensureBluetoothCanBeUsed(
 
     val context = LocalContext.current
 
-    return if (context.isBluetoothPeripheralPermissionGranted(
-            AskType.AskOnce,
-            requestPermissionLauncher
-        )
-    ) {
+    return if (context.isBluetoothPeripheralPermissionGranted(requestPermissionLauncher)) {
         if (isBluetoothEnabled) {
-            appendLog("BLE ready for use")
+            //appendLog("BLE ready for use")
             true
         } else {
             // start activity for the request
             SideEffect {
                 requestBluetooth.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
             }
-            appendLog("Bluetooth OFF")
+            // appendLog("Bluetooth OFF")
             false
         }
     } else {
-        appendLog("Bluetooth permissions denied")
+        //appendLog("Bluetooth permissions denied")
         false
     }
 }
 
-private fun appendLog(message: String) {
-    Log.d("appendLog", message)
-    /* lifecycleScope.launch {
-         val strTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-         binding.textViewLog.text = binding.textViewLog.text.toString() + "\n$strTime $message"
-
-         // scroll after delay, because textView has to be updated first
-         binding.scrollViewLog.postDelayed({
-             binding.scrollViewLog.fullScroll(View.FOCUS_DOWN)
-         }, 16)
-     }*/
-}

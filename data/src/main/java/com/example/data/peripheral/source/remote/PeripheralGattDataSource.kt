@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import java.util.*
 import javax.inject.Inject
-import kotlin.math.log
 
 class PeripheralGattDataSource @Inject constructor(
     private val context: Application,

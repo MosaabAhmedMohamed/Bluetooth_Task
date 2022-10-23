@@ -71,6 +71,7 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.0-alpha04")
     implementation("androidx.compose.material:material-icons-extended:1.2.1")
+    implementation("com.google.accompanist:accompanist-permissions:0.26.5-rc")
 
     // compose insets
     implementation("com.google.accompanist:accompanist-insets:0.20.2")

@@ -9,12 +9,14 @@ import androidx.lifecycle.viewModelScope
 import com.example.core.ble.*
 import com.example.core.util.DispatcherProvider
 import com.example.domain.central.usecase.GattUseCase
-import com.example.presentation.central.viewstate.CentralActionState
-import com.example.presentation.central.viewstate.CentralDataState
+import com.example.presentation.central.viewstate.CentralSideEffect
+import com.example.presentation.central.viewstate.CentralViewState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -25,10 +27,15 @@ class BleCentralViewModel @Inject constructor(
     private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
 
-    private val uiState: MutableStateFlow<CentralDataState> =
-        MutableStateFlow(CentralDataState(actionState = CentralActionState.Initial))
+    private val uiState: MutableStateFlow<CentralViewState> =
+        MutableStateFlow(CentralViewState())
 
     fun state() = uiState.asStateFlow()
+
+    private val sideEffectState: MutableStateFlow<CentralSideEffect> =
+        MutableStateFlow(CentralSideEffect.Initial)
+
+    fun sideEffect() = sideEffectState.asStateFlow()
 
     private var lifecycleState = BLELifecycleState.Disconnected
         set(value) {
@@ -93,7 +100,7 @@ class BleCentralViewModel @Inject constructor(
         gattUseCase.closeGatt()
         gattUseCase.setConnectedGattToNull()
         lifecycleState = BLELifecycleState.Disconnected
-        uiState.update { it.copy(actionState = CentralActionState.Initial) }
+        sideEffectState.value = CentralSideEffect.Initial
     }
 
     fun bleRestartLifecycle(userWantsToScanAndConnect: Boolean = true) {
@@ -119,9 +126,19 @@ class BleCentralViewModel @Inject constructor(
     fun onTapWrite(message: ByteArray) = gattUseCase.onTapWrite(message)
 
     private fun appendLog(message: String) {
+        viewModelScope.launch{
+            uiState.update {
+                val logs = it.logs
+                logs.add(0, message)
+                it.copy(logs = logs)
+            }
+        }
+    }
+
+    fun clearLog() {
         viewModelScope.launch(dispatchers.main) {
             uiState.update {
-                it.copy(log = message)
+                it.copy(logs = mutableListOf())
             }
         }
     }
@@ -135,32 +152,32 @@ class BleCentralViewModel @Inject constructor(
     }
 
     fun restartLifecycle() {
-        uiState.update {
-            it.copy(actionState = CentralActionState.OnBleRestartLifecycle)
-        }
+        sideEffectState.value = CentralSideEffect.OnBleRestartLifecycle
     }
 
     fun onPermissionGranted() {
-        uiState.update {
-            it.copy(actionState = CentralActionState.OnPermissionGranted)
-        }
+        if (isBluetoothEnabled())
+            sideEffectState.value = CentralSideEffect.OnPermissionGranted
+    }
+
+    fun onBleStateChanged(bleState: Int) {
+        sideEffectState.value = CentralSideEffect.BleOnOffState(bleState)
     }
 
     init {
         viewModelScope.launch(dispatchers.io) {
             gattUseCase.gattStateCallback()
-                .buffer(5)
-                .onEach { domainState ->
-                    withContext(dispatchers.main) {
-                        lifecycleState = domainState.state
-                        appendLog(domainState.log)
-                        if (domainState.isRestartLifecycle) bleRestartLifecycle()
-                        uiState.update {
-                            it.copy(indicate = domainState.indicate, read = domainState.read)
-                        }
+                .collectLatest { domainState ->
+                    lifecycleState = domainState.state
+                    appendLog(domainState.log)
+                    if (domainState.isRestartLifecycle) bleRestartLifecycle()
+                    uiState.update {
+                        it.copy(
+                            indicate = domainState.indicate,
+                            read = domainState.read
+                        )
                     }
                 }
-                .launchIn(this)
         }
     }
 }

@@ -5,8 +5,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.presentation.central.fragment.CentralScreen
-import com.example.presentation.peripheral.fragment.PeripheralScreen
+import com.example.presentation.central.ui.CentralScreen
+import com.example.presentation.peripheral.ui.PeripheralScreen
 import com.google.accompanist.insets.ProvideWindowInsets
 
 @Composable

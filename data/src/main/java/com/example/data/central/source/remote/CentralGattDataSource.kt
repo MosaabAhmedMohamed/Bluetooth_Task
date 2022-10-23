@@ -9,6 +9,7 @@ import com.example.core.ble.BleExt
 import com.example.core.ble.isReadable
 import com.example.core.ble.isWriteable
 import com.example.data.central.source.remote.model.CentralGattModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -21,6 +22,7 @@ class CentralGattDataSource @Inject constructor() {
         MutableStateFlow(CentralGattModel())
 
     fun state() = gattState.asStateFlow()
+
 
     var connectedGatt: BluetoothGatt? = null
     var characteristicForRead: BluetoothGattCharacteristic? = null
@@ -125,7 +127,7 @@ class CentralGattDataSource @Inject constructor() {
                     else -> "error $status"
                 }
                 appendLog(log)
-                gattState.update { it.copy(read = strValue) }
+                gattState.update { it.copy(read = StringBuilder(strValue).toString()) }
             } else {
                 appendLog("onCharacteristicRead unknown uuid $characteristic.uuid")
             }
@@ -156,7 +158,7 @@ class CentralGattDataSource @Inject constructor() {
             if (characteristic.uuid == UUID.fromString(BleExt.CHAR_FOR_INDICATE_UUID)) {
                 val strValue = characteristic.value.toString(Charsets.UTF_8)
                 appendLog("onCharacteristicChanged value=\"$strValue\"")
-                gattState.update { it.copy(indicate = strValue) }
+                gattState.update { it.copy(indicate = StringBuilder(strValue).toString()) }
             } else {
                 appendLog("onCharacteristicChanged unknown uuid $characteristic.uuid")
             }
