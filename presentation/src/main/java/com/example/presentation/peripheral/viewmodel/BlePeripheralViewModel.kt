@@ -1,20 +1,18 @@
 package com.example.presentation.peripheral.viewmodel
 
 import android.bluetooth.*
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.ble.BleAdvertiserManager
 import com.example.core.util.DispatcherProvider
+import com.example.domain.peripheral.model.PeripheralGattDomainModel
 import com.example.domain.peripheral.usecase.GattServerUseCase
 import com.example.presentation.peripheral.viewstate.PeripheralSideEffect
 import com.example.presentation.peripheral.viewstate.PeripheralViewState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -93,7 +91,7 @@ class BlePeripheralViewModel @Inject constructor(
         viewModelScope.launch {
             uiState.update {
                 val logs = it.logs
-                logs.add(0,message)
+                logs.add(0, message)
                 it.copy(logs = logs)
             }
         }
@@ -113,31 +111,50 @@ class BlePeripheralViewModel @Inject constructor(
 
     fun onStartAdvAdvertisingChanged(advertisingState: Boolean) {
         sideEffectState.value = PeripheralSideEffect.OnStartAdvAdvertisingClicked(advertisingState)
-
     }
 
     fun onPermissionGranted() {
         sideEffectState.value = PeripheralSideEffect.OnPermissionGranted
     }
 
+    private fun onDisconnected() {
+        sideEffectState.value = PeripheralSideEffect.OnDisconnected
+    }
+
+
     init {
         viewModelScope.launch(dispatchers.io) {
             gattServerUseCase.gattStateCallback()
+                .onEach {
+                    Log.d("testtestTAG", "   :   ${it}")
+                }
                 .collectLatest { domainState ->
-                    withContext(dispatchers.main) {
-                        subscribedDevices = domainState.subscribedDevices
-                        updateSubscribersUI()
-                        appendLog(domainState.log)
-                        uiState.update {
-                            it.copy(
-                                connectionState = domainState.connectionState,
-                                write = domainState.write
-                            )
-                        }
-                    }
+                    updateUiState(domainState)
+                    handleConnectionState(domainState.connectionState)
                 }
 
         }
+    }
+
+    private fun updateUiState(domainState: PeripheralGattDomainModel) {
+        subscribedDevices = domainState.subscribedDevices
+        updateSubscribersUI()
+        appendLog(domainState.log)
+        uiState.update {
+            it.copy(
+                connectionState = domainState.connectionState,
+                write = domainState.write
+            )
+        }
+    }
+
+    private fun handleConnectionState(connectionState: Int) {
+        if (uiState.value.isAdvertising)
+            if (connectionState == BluetoothProfile.STATE_DISCONNECTED ||
+                connectionState == BluetoothProfile.STATE_DISCONNECTING
+            ) {
+                onDisconnected()
+            }
     }
 }
 

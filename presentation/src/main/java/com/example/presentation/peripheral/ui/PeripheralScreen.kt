@@ -74,9 +74,11 @@ fun PeripheralScreen(
 private fun PeripheralScreenBody(viewModel: BlePeripheralViewModel) {
     val checkedState = remember { mutableStateOf(false) }
     var editTextCharForIndicate by rememberSaveable { mutableStateOf("Android indication") }
-    val viewState = viewModel.state().collectAsState(PeripheralViewState()).value
+    val viewState = viewModel.state()
+        .collectAsState(PeripheralViewState()).value
     val sideEffect = viewModel.sideEffect().collectAsState().value
-    val currentSideEffect = remember { mutableStateOf<PeripheralSideEffect>(PeripheralSideEffect.Initial) }
+    val currentSideEffect =
+        remember { mutableStateOf<PeripheralSideEffect>(PeripheralSideEffect.Initial) }
 
     ConstraintLayout(
         modifier = Modifier
@@ -163,7 +165,7 @@ private fun PeripheralScreenBody(viewModel: BlePeripheralViewModel) {
                 end.linkTo(parent.end)
                 top.linkTo(indicateTf.bottom)
             }
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp,)
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp)
             .fillMaxWidth()
         ) {
             Text(text = stringResource(id = R.string.notify))
@@ -186,7 +188,7 @@ private fun PeripheralScreenBody(viewModel: BlePeripheralViewModel) {
             when (sideEffect) {
                 PeripheralSideEffect.Initial -> {
                     Text(
-                        text =  stringResource(id = R.string.text_state).plus(stringResource(id = R.string.text_disconnected)) ,
+                        text = stringResource(id = R.string.text_state).plus(stringResource(id = R.string.text_disconnected)),
                         style = MaterialTheme.typography.body2,
                         modifier = Modifier
                             .constrainAs(connectionState) {
@@ -216,6 +218,10 @@ private fun PeripheralScreenBody(viewModel: BlePeripheralViewModel) {
                     } else {
                         viewModel.bleStopAdvertising()
                     }
+                }
+                PeripheralSideEffect.OnDisconnected -> {
+                    checkedState.value = false
+                    viewModel.onStartAdvAdvertisingChanged(false)
                 }
             }
         }

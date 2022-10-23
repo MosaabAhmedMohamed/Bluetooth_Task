@@ -86,11 +86,6 @@ class CentralGattDataSource @Inject constructor() {
                 return
             }
 
-            gatt.services.forEach {
-                Log.d("TAGTAGTAG", "onServicesDiscovered: ${it.uuid}")
-            }
-
-
             val service = gatt.getService(UUID.fromString(BleExt.SERVICE_UUID)) ?: run {
                 appendLog("ERROR: Service not found ${BleExt.SERVICE_UUID}, disconnecting")
                 gatt.disconnect()
