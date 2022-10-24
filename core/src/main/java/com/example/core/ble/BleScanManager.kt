@@ -1,6 +1,6 @@
 package com.example.core.ble
 
-import android.bluetooth.BluetoothAdapter
+import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanSettings
@@ -9,13 +9,14 @@ import android.os.ParcelUuid
 import androidx.annotation.RequiresApi
 import java.util.*
 
-class BleScanManager(private val bluetoothAdapter: BluetoothAdapter) {
+class BleScanManager(private val scanner: BluetoothLeScanner) {
 
     var isScanning = false
 
-    private val scanner by lazy {
-        bluetoothAdapter.bluetoothLeScanner
-    }
+    private val scanFilter = ScanFilter.Builder()
+        .setServiceUuid(ParcelUuid(UUID.fromString(BleExt.SERVICE_UUID)))
+        .build()
+
 
     fun startScan(scanCallback: ScanCallback) {
         scanner.startScan(mutableListOf(scanFilter),scanSettings,scanCallback)
@@ -35,10 +36,6 @@ class BleScanManager(private val bluetoothAdapter: BluetoothAdapter) {
         isScanning = false
         stopScan(scanCallback)
     }
-
-    private val scanFilter = ScanFilter.Builder()
-        .setServiceUuid(ParcelUuid(UUID.fromString(BleExt.SERVICE_UUID)))
-        .build()
 
     fun serviceFilter() = scanFilter.serviceUuid?.uuid.toString()
 

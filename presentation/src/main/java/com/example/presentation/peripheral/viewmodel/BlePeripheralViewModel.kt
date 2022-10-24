@@ -35,13 +35,13 @@ class BlePeripheralViewModel @Inject constructor(
     private var subscribedDevices = emptySet<BluetoothDevice>()
 
     private val bleAdvertiser by lazy {
-        BleAdvertiserManager(bluetoothAdapter, {
+        BleAdvertiserManager(bluetoothAdapter.bluetoothLeAdvertiser, {
             appendLog(it)
-        }, { advertising ->
+        }) { advertising ->
             viewModelScope.launch(dispatchers.main) {
                 uiState.update { it.copy(isAdvertising = advertising) }
             }
-        })
+        }
     }
 
     fun isBluetoothEnabled() = bluetoothAdapter.isEnabled

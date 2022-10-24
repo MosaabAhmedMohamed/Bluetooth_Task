@@ -47,7 +47,7 @@ class BleCentralViewModel @Inject constructor(
             }
         }
 
-    private val bleScanner by lazy { BleScanManager(bluetoothAdapter) }
+    private val bleScanner by lazy { BleScanManager(bluetoothAdapter.bluetoothLeScanner) }
 
     fun init() {
         if (bleScanner.isScanning) {

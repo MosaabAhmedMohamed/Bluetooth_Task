@@ -13,6 +13,9 @@ class BleExt {
     }
 }
 
+
+
+
 // BluetoothGattCharacteristic extension
 fun BluetoothGattCharacteristic.isReadable(): Boolean =
     containsProperty(BluetoothGattCharacteristic.PROPERTY_READ)

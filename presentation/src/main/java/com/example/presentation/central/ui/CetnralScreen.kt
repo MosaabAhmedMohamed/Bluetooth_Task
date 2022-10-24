@@ -5,6 +5,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.activity.result.ActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -80,13 +82,14 @@ fun CentralScreen(
 private fun CentralScreenBody(viewModel: BleCentralViewModel) {
     val viewState = viewModel.state().collectAsState().value
     val sideEffect = viewModel.sideEffect().collectAsState().value
-    val currentSideEffect = remember { mutableStateOf<CentralSideEffect>(CentralSideEffect.Initial) }
+    val currentSideEffect =
+        remember { mutableStateOf<CentralSideEffect>(CentralSideEffect.Initial) }
     val requestBluetoothLauncher = rememberBluetoothLauncher {
         viewModel.askingForEnableBluetoothStatus(false)
         if (it)
             viewModel.onPermissionGranted()
         else
-            viewModel.onPermissionGranted()
+            viewModel.onScanAndConnectChanged(false)
     }
 
     ConstraintLayout(
@@ -226,17 +229,27 @@ private fun CentralScreenBody(viewModel: BleCentralViewModel) {
                     viewModel.clearLog()
                 })
 
-        checkPermissionRequest(viewState.isUserWantsToScanAndConnect) {
-            viewModel.onPermissionGranted()
-        }
+        checkPermissionRequest(viewState.isUserWantsToScanAndConnect,
+            onPermissionGranted = { viewModel.onPermissionGranted() },
+            onDismissRequest = { viewModel.onScanAndConnectChanged(false) })
 
-        val context = LocalContext.current
-
-        if (viewModel.isAskForEnableBluetooth() && context.isLocationPermissionGranted()) {
+        checkForEnablingBluetooth(viewModel.isAskForEnableBluetooth(), requestBluetoothLauncher) {
             viewModel.askingForEnableBluetoothStatus(true)
-            SideEffect {
-                requestBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
-            }
+        }
+    }
+}
+
+@Composable
+private fun checkForEnablingBluetooth(
+    isAskForEnableBluetooth: Boolean,
+    requestBluetoothLauncher: ManagedActivityResultLauncher<Intent, ActivityResult>,
+    askingForEnableBluetoothStatus: () -> Unit
+) {
+    val context = LocalContext.current
+    if (isAskForEnableBluetooth && context.isLocationPermissionGranted()) {
+        askingForEnableBluetoothStatus.invoke()
+        SideEffect {
+            requestBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
         }
     }
 }
@@ -245,7 +258,8 @@ private fun CentralScreenBody(viewModel: BleCentralViewModel) {
 @Composable
 private fun checkPermissionRequest(
     isUserWantsToScanAndConnect: Boolean,
-    onPermissionGranted: () -> Unit
+    onPermissionGranted: () -> Unit,
+    onDismissRequest: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -255,9 +269,11 @@ private fun checkPermissionRequest(
         val allPermissions = mutableListOf<String>()
             .plus(locationPermission())
             .plus(centralWantedPermissions())
-        RequestPermission(allPermissions) {
-            onPermissionGranted()
-        }
+        RequestPermission(
+            allPermissions,
+            onPermissionGranted = { onPermissionGranted() },
+            onDismissRequest = onDismissRequest
+        )
     }
 }
 

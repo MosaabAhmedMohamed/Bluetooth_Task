@@ -23,5 +23,4 @@ class BleModule {
     fun provideBluetoothAdapter(
         bluetoothManager: BluetoothManager
     ): BluetoothAdapter = bluetoothManager.adapter
-
 }

@@ -139,7 +139,8 @@ fun rememberPermissionsLauncherForActivityResult(onPermissionGranted: () -> Unit
 fun RequestPermission(
     permissions: List<String>,
     rationaleMessage: String = stringResource(id = R.string.permission_request_desc),
-    onPermissionGranted: () -> Unit
+    onPermissionGranted: () -> Unit,
+    onDismissRequest: () -> Unit
 ) {
     val permissionState = rememberMultiplePermissionsState(permissions)
 
@@ -148,8 +149,10 @@ fun RequestPermission(
         deniedContent = { shouldShowRationale ->
             PermissionDeniedContent(
                 rationaleMessage = rationaleMessage,
-                shouldShowRationale = shouldShowRationale
-            ) { permissionState.launchMultiplePermissionRequest() }
+                shouldShowRationale = shouldShowRationale,
+                onRequestPermission = { permissionState.launchMultiplePermissionRequest() },
+                onDismissRequest = onDismissRequest
+            )
         }
     ) {
         onPermissionGranted()
@@ -190,11 +193,12 @@ fun Content(showButton: Boolean = true, onClick: () -> Unit) {
 fun PermissionDeniedContent(
     rationaleMessage: String,
     shouldShowRationale: Boolean,
-    onRequestPermission: () -> Unit
+    onRequestPermission: () -> Unit,
+    onDismissRequest: () -> Unit
 ) {
     if (shouldShowRationale) {
         AlertDialog(
-            onDismissRequest = {},
+            onDismissRequest = onDismissRequest,
             title = {
                 Text(
                     text = stringResource(id = R.string.permission_request),
