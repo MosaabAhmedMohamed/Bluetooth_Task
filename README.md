@@ -3,9 +3,9 @@
 A simple app that show BLE with one device as central and one as peripheral streaming data. Ideally using Notify technique.
 
 ## Challenge description
-- code sample for testing Bluetooth between two devices one device as central
+- code sample for testing Bluetooth between two devices, one device as central
 and one as peripheral, streaming data using Notify technique. 
-- App consist of 2 screen 1st is for central and 2nd is for peripheral.
+- App consists of 2 screens 1st is for central and 2nd is for peripheral.
 - App connect automatically with the device once you start scanning and start advertising on the other device.
 
 
