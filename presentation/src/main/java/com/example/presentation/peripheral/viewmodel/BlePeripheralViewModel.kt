@@ -93,7 +93,7 @@ class BlePeripheralViewModel @Inject constructor(
     }
 
     private fun appendLog(message: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(dispatchers.main) {
             uiState.update {
                 val logs = it.logs
                 logs.add(0, message)
