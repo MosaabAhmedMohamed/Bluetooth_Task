@@ -1,14 +1,14 @@
 package com.example.core.ble
 
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.le.AdvertiseCallback
 import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
-import android.bluetooth.le.BluetoothLeAdvertiser
 import android.os.ParcelUuid
 import java.util.*
 
 class BleAdvertiserManager(
-    private val bleAdvertiser: BluetoothLeAdvertiser,
+    private val bluetoothAdapter: BluetoothAdapter,
     private val log: (mes: String) -> Unit,
     private val advertisingState: (state: Boolean) -> Unit
 ) {
@@ -20,6 +20,10 @@ class BleAdvertiserManager(
             // update visual state of the switch
             advertisingState.invoke(field)
         }
+
+    private val bleAdvertiser by lazy {
+        bluetoothAdapter.bluetoothLeAdvertiser
+    }
 
     private val advertiseSettings = AdvertiseSettings.Builder()
         .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)

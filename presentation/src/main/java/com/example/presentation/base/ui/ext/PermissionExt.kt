@@ -198,7 +198,7 @@ fun PermissionDeniedContent(
 ) {
     if (shouldShowRationale) {
         AlertDialog(
-            onDismissRequest = onDismissRequest,
+            onDismissRequest = {onDismissRequest()},
             title = {
                 Text(
                     text = stringResource(id = R.string.permission_request),

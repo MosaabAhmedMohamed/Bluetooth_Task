@@ -245,8 +245,7 @@ private fun checkForEnablingBluetooth(
     requestBluetoothLauncher: ManagedActivityResultLauncher<Intent, ActivityResult>,
     askingForEnableBluetoothStatus: () -> Unit
 ) {
-    val context = LocalContext.current
-    if (isAskForEnableBluetooth && context.isLocationPermissionGranted()) {
+    if (isAskForEnableBluetooth) {
         askingForEnableBluetoothStatus.invoke()
         SideEffect {
             requestBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
@@ -269,11 +268,9 @@ private fun checkPermissionRequest(
         val allPermissions = mutableListOf<String>()
             .plus(locationPermission())
             .plus(centralWantedPermissions())
-        RequestPermission(
-            allPermissions,
+        RequestPermission(allPermissions,
             onPermissionGranted = { onPermissionGranted() },
-            onDismissRequest = onDismissRequest
-        )
+            onDismissRequest = { onDismissRequest() })
     }
 }
 
