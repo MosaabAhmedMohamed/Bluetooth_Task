@@ -3,8 +3,11 @@
 A simple app that show BLE with one device as central and one as peripheral streaming data. Ideally using Notify technique.
 
 ## Challenge description
-BT code; sample code testing between two devices is fine. 
-Needs to show BLE with one device as central and one as peripheral streaming data. Ideally using Notify technique.
+- code sample code testing between two devices one device as central
+and one as peripheral streaming data using Notify technique. 
+- App consist of 2 screen 1st is for central and 2nd is for peripheral.
+- App connect automatically with the device once you start scanning and start advertising on the other device.
+
 
 ## What i have done
 I started working on it by migrating gradle files to kotlin dsl then modeling the project to clean architecture ( core, app, data, domain, presentation) modules ,
