@@ -81,14 +81,7 @@ class BlePeripheralViewModel @Inject constructor(
 
     fun bleIndicate(text: String) {
         viewModelScope.launch(dispatchers.main) {
-            val data = text.toByteArray(Charsets.UTF_8)
-            gattServerUseCase.charForIndicate()?.let {
-                it.value = data
-                for (device in subscribedDevices) {
-                    appendLog("sending indication \"$text\"")
-                    gattServerUseCase.gattServer()?.notifyCharacteristicChanged(device, it, true)
-                }
-            }
+            gattServerUseCase.bleIndicate(text)
         }
     }
 

@@ -177,6 +177,16 @@ class PeripheralGattDataSource @Inject constructor(
             UUID.fromString(BleExt.CHAR_FOR_INDICATE_UUID)
         )
 
+    fun bleIndicate(text: String) {
+            val data = text.toByteArray(Charsets.UTF_8)
+            charForIndicate?.let {
+                it.value = data
+                for (device in subscribedDevices) {
+                    appendLog("sending indication \"$text\"")
+                    gattServer?.notifyCharacteristicChanged(device, it, true)
+                }
+            }
+    }
 
     fun bleStartGattServer() {
         val gattServer = bluetoothManager.openGattServer(context, gattServerCallback)

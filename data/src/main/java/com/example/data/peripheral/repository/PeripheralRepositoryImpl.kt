@@ -16,9 +16,7 @@ class PeripheralRepositoryImpl @Inject constructor(
             it.mapToDomain()
         }
 
-    override suspend fun gattServer() = gattDataSource.gattServer
-
-    override suspend fun charForIndicate() = gattDataSource.charForIndicate
+    override suspend fun bleIndicate(text: String) = gattDataSource.bleIndicate(text)
 
     override suspend fun bleStartGattServer() = gattDataSource.bleStartGattServer()
 

@@ -7,9 +7,7 @@ class GattServerUseCase@Inject constructor(private val peripheralRepository: Per
 
     suspend fun gattStateCallback() = peripheralRepository.gattStateCallback()
 
-    suspend fun gattServer() = peripheralRepository.gattServer()
-
-    suspend fun charForIndicate() = peripheralRepository.charForIndicate()
+    suspend fun bleIndicate(text: String) = peripheralRepository.bleIndicate(text)
 
     suspend fun bleStartGattServer() = peripheralRepository.bleStartGattServer()
 
