@@ -90,9 +90,7 @@ Then ViewModel starts to delegate the event to it's suitable UseCase with thread
         }
     }
 ```
-As the UseCase process and get the required models form the repository it returns the result back to the ViewModel to start Exposing it as Flow to our Lifecycle Owner (Activity)
-```
-   
+As the UseCase process and get the required models form the repository it returns the result back to the ViewModel to start Exposing it as Flow to our Lifecycle Owner (Activity)   
 
 ``` class GattServerUseCase@Inject constructor(private val peripheralRepository: PeripheralRepository) {
 
@@ -112,8 +110,7 @@ As the UseCase process and get the required models form the repository it return
 } 
 
 ```
-           
-```
+          
 
 then back to our View it will listen for any change in our state() ( ViewState Holder) and React to it.
 
