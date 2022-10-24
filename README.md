@@ -14,10 +14,9 @@ enabled proguard for obfuscating and securing the code base,
 used different branches to implement and refactor the features to avoid conflicts.
 
 ## Screenshot
-<img src="https://user-images.githubusercontent.com/32736722/181377219-f295435c-dfdc-4e16-bc3a-53cf93245b0e.png" width="300">|
-<img src="https://user-images.githubusercontent.com/32736722/181377250-00b4bd56-a506-49cc-8fc3-895e7f8d1a45.png" width="300">|
-<img src="https://user-images.githubusercontent.com/32736722/181377273-33d869dd-931e-4f97-acf4-8d9135b1aabf.png" width="300">|
-<img src="https://user-images.githubusercontent.com/32736722/181377287-3ac2f595-1092-4598-8ccf-6292272dadc7.png" width="300">|
+<img src="https://user-images.githubusercontent.com/32736722/197438506-6effd556-9568-4021-9dba-46e434ab368c.jpg" width="300">|
+<img src="https://user-images.githubusercontent.com/32736722/197438456-abcf0e71-6869-4537-9f92-8179e82d75f8.jpg" width="300">|
+
 
 ## Download
 [APK](https://github.com/MosaabAhmedMohamed/TicketsSeller/blob/master/Tickets%20Seller.apk)
