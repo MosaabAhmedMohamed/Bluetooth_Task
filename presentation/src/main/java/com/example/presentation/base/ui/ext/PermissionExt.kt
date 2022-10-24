@@ -1,96 +1,228 @@
 package com.example.presentation.base.ui.ext
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
-import androidx.core.app.ActivityCompat
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.Button
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.Fragment
+import com.example.presentation.R
+import com.example.presentation.base.ui.CustomDialogLocation
+import com.google.accompanist.permissions.*
 
-class PermissionExt {
-
-    companion object {
-        const val ENABLE_BLUETOOTH_REQUEST_CODE = 1
-        const val LOCATION_PERMISSION_REQUEST_CODE = 2
-        const val BLUETOOTH_ALL_PERMISSIONS_REQUEST_CODE = 3
-    }
-}
 
 fun centralWantedPermissions() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-    arrayOf(
+    listOf(
+        Manifest.permission.BLUETOOTH,
         Manifest.permission.BLUETOOTH_CONNECT,
         Manifest.permission.BLUETOOTH_SCAN,
     )
 } else {
-    emptyArray()
+    emptyList()
 }
 
 fun peripheralWantedPermissions() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-    arrayOf(
+    listOf(
+        Manifest.permission.BLUETOOTH,
         Manifest.permission.BLUETOOTH_CONNECT,
         Manifest.permission.BLUETOOTH_ADVERTISE,
     )
 } else {
-    emptyArray()
+    emptyList()
 }
 
-fun locationPermission() = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+fun locationPermission() = listOf(Manifest.permission.ACCESS_FINE_LOCATION)
 
 
-fun Fragment.isBluetoothCentralPermissionGranted(): Boolean {
+fun Context.isBluetoothCentralPermissionGranted(): Boolean {
     val connectPermission =
-        ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT)
+        ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
     val scanPermission =
-        ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_SCAN)
+        ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
     return connectPermission == PackageManager.PERMISSION_GRANTED &&
             scanPermission == PackageManager.PERMISSION_GRANTED ||
-            requireContext().hasPermissions(centralWantedPermissions())
+            hasPermissions(centralWantedPermissions())
 
 }
 
-
-fun askForBluetoothCentralPermission(launcher: ActivityResultLauncher<Array<String>>) {
-    if (centralWantedPermissions().isNotEmpty())
-        launcher.launch(
-            centralWantedPermissions()
-        )
-}
-
-fun Fragment.isBluetoothPeripheralPermissionGranted(): Boolean {
+fun Context.isBluetoothPeripheralPermissionGranted(): Boolean {
     val connectPermission =
-        ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT)
+        ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
     val scanAdvertise =
-        ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_ADVERTISE)
+        ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADVERTISE)
     return connectPermission == PackageManager.PERMISSION_GRANTED &&
             scanAdvertise == PackageManager.PERMISSION_GRANTED ||
-            requireContext().hasPermissions(peripheralWantedPermissions())
+            hasPermissions(peripheralWantedPermissions())
 
 }
 
 
+@Composable
 fun askForBluetoothPeripheralPermission(launcher: ActivityResultLauncher<Array<String>>) {
     if (peripheralWantedPermissions().isNotEmpty())
-        launcher.launch(peripheralWantedPermissions())
+        launcher.launch(peripheralWantedPermissions().toTypedArray())
 }
 
 
-fun Fragment.isLocationPermissionGranted(): Boolean {
+fun Context.isLocationPermissionGranted(): Boolean {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         // BLUETOOTH_SCAN permission has flag "neverForLocation", so location not needed
         true
     } else Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
-            requireContext().hasPermissions(locationPermission())
+            hasPermissions(locationPermission())
+}
+
+@Composable
+fun Context.isBluetoothPeripheralPermissionGranted(
+    launcher: ActivityResultLauncher<Array<String>>
+): Boolean {
+    if (isBluetoothPeripheralPermissionGranted()) {
+        return true
+    } else {
+        askForBluetoothPeripheralPermission(launcher)
+    }
+    return false
 }
 
 
-fun Fragment.askForLocationPermission() {
-    ActivityCompat.requestPermissions(
-        requireActivity(),
-        locationPermission(),
-        PermissionExt.LOCATION_PERMISSION_REQUEST_CODE
-    )
+@Composable
+fun rememberBluetoothLauncher(onPermissionGrantResult: (isGranted: Boolean) -> Unit)
+        : ManagedActivityResultLauncher<Intent, ActivityResult> {
+    return androidx.activity.compose.rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            //granted
+            onPermissionGrantResult.invoke(true)
+        } else {
+            //deny
+            onPermissionGrantResult.invoke(false)
+        }
+    }
 }
+
+@Composable
+fun rememberPermissionsLauncherForActivityResult(onPermissionGranted: () -> Unit)
+        : ManagedActivityResultLauncher<Array<String>, Map<String, @JvmSuppressWildcards Boolean>> {
+    return androidx.activity.compose.rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val isGranted = permissions.values.contains(false).not()
+
+        if (isGranted) {
+            // PERMISSION GRANTED
+            onPermissionGranted()
+        } else {
+            // PERMISSION NOT GRANTED
+            //appendLog("ERROR: onRequestPermissionsResult requestCode=$isGranted not handled")
+        }
+    }
+}
+
+
+@ExperimentalPermissionsApi
+@Composable
+fun RequestPermission(
+    permissions: List<String>,
+    rationaleMessage: String = stringResource(id = R.string.permission_request_desc),
+    onPermissionGranted: () -> Unit,
+    onDismissRequest: () -> Unit
+) {
+    val permissionState = rememberMultiplePermissionsState(permissions)
+
+    HandleRequest(
+        permissionState = permissionState,
+        deniedContent = { shouldShowRationale ->
+            PermissionDeniedContent(
+                rationaleMessage = rationaleMessage,
+                shouldShowRationale = shouldShowRationale,
+                onRequestPermission = { permissionState.launchMultiplePermissionRequest() },
+                onDismissRequest = onDismissRequest
+            )
+        }
+    ) {
+        onPermissionGranted()
+    }
+}
+
+@ExperimentalPermissionsApi
+@Composable
+fun HandleRequest(
+    permissionState: MultiplePermissionsState,
+    deniedContent: @Composable (Boolean) -> Unit,
+    content: @Composable () -> Unit
+) {
+    if (permissionState.allPermissionsGranted) {
+        content()
+    } else {
+        deniedContent(permissionState.shouldShowRationale)
+    }
+}
+
+@Composable
+fun Content(showButton: Boolean = true, onClick: () -> Unit) {
+    if (showButton) {
+        val enableLocation = remember { mutableStateOf(true) }
+        if (enableLocation.value) {
+            CustomDialogLocation(
+                title = stringResource(id = R.string.permission_dialog_title),
+                desc = stringResource(id = R.string.permission_dialog_desc),
+                enableLocation,
+                onClick
+            )
+        }
+    }
+}
+
+@ExperimentalPermissionsApi
+@Composable
+fun PermissionDeniedContent(
+    rationaleMessage: String,
+    shouldShowRationale: Boolean,
+    onRequestPermission: () -> Unit,
+    onDismissRequest: () -> Unit
+) {
+    if (shouldShowRationale) {
+        AlertDialog(
+            onDismissRequest = {onDismissRequest()},
+            title = {
+                Text(
+                    text = stringResource(id = R.string.permission_request),
+                    style = TextStyle(
+                        fontSize = MaterialTheme.typography.body2.fontSize,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            },
+            text = {
+                Text(rationaleMessage)
+            },
+            confirmButton = {
+                Button(onClick = onRequestPermission) {
+                    Text(stringResource(id = R.string.give_permission))
+                }
+            }
+        )
+    } else {
+        Content(onClick = onRequestPermission)
+    }
+
+}
+
 
 enum class AskType {
     AskOnce,

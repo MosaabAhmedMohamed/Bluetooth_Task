@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     kotlin("kapt")
     id("androidx.navigation.safeargs.kotlin")
+    id("dagger.hilt.android.plugin")
 }
 
 android {
@@ -33,7 +34,11 @@ android {
         jvmTarget = "1.8"
     }
 
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.2.0" // compose_version
+    }
     android.buildFeatures.viewBinding = true
+    android.buildFeatures.compose = true
 }
 
 dependencies {
@@ -56,27 +61,28 @@ dependencies {
     testImplementation(TestingLib.android_test_room)
     testImplementation(AndroidTestingLib.ANDROIDX_TEST_CORE)
 
-    /**
-     * DI
-     * */
-    implementation(DAGGER.DAGGER)
-    implementation(DAGGER.DAGGER_ANDROID_SUPPORT)
-    implementation(DAGGER.DAGGER_ANDROID)
-    kapt(DAGGER.DAGGER_ANNOTATION)
-    kapt(DAGGER.DAGGER_KAPT)
+    //Compose
+    implementation("androidx.compose.ui:ui:1.2.1")
+    implementation("androidx.compose.material:material:1.2.1")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.2.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.5.1")
+    implementation("androidx.activity:activity-compose:1.6.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.5.1")
+    implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
+    implementation("androidx.constraintlayout:constraintlayout-compose:1.1.0-alpha04")
+    implementation("androidx.compose.material:material-icons-extended:1.2.1")
+    implementation("com.google.accompanist:accompanist-permissions:0.26.5-rc")
+
+    // compose insets
+    implementation("com.google.accompanist:accompanist-insets:0.20.2")
+
+    //Hilt
+    implementation("com.google.dagger:hilt-android:2.42")
+    kapt("com.google.dagger:hilt-android-compiler:2.42")
 
     //Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
     testImplementation ("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
-
-    /**
-     * room Db
-     * */
-    implementation("androidx.room:room-ktx:2.4.2")
-    kapt("androidx.room:room-compiler:2.4.2")
-    api("androidx.room:room-runtime:2.4.2")
-    implementation("androidx.room:room-common:2.4.2")
-
 
     //Navigation
     implementation(NAVIGATION.NAVIGATION_FRAGMENT)

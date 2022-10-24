@@ -6,8 +6,11 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import dagger.Module
 import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
 
 @Module
+@InstallIn(SingletonComponent::class)
 class BleModule {
 
     @Provides
@@ -20,5 +23,4 @@ class BleModule {
     fun provideBluetoothAdapter(
         bluetoothManager: BluetoothManager
     ): BluetoothAdapter = bluetoothManager.adapter
-
 }

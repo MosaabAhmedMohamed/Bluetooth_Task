@@ -13,7 +13,6 @@ class CentralRepositoryImpl @Inject constructor(
     override suspend fun gattStateCallback() = gattDataSource.state()
         .map { it.mapToDomain() }
 
-
     override suspend fun gattCallback() = gattDataSource.gattCallback
 
     override fun isGattNotInitialized() = gattDataSource.isGattNotInitialized()

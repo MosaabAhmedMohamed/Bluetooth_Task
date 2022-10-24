@@ -10,15 +10,17 @@ import com.example.core.ble.isWriteable
 import com.example.data.central.source.remote.model.CentralGattModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import java.util.*
 import javax.inject.Inject
 
 class CentralGattDataSource @Inject constructor() {
 
     private val gattState: MutableStateFlow<CentralGattModel> =
-        MutableStateFlow(CentralGattModel.Initial)
+        MutableStateFlow(CentralGattModel())
 
     fun state() = gattState.asStateFlow()
+
 
     var connectedGatt: BluetoothGatt? = null
     var characteristicForRead: BluetoothGattCharacteristic? = null
@@ -39,8 +41,8 @@ class CentralGattDataSource @Inject constructor() {
 
                     // recommended on UI thread https://punchthrough.com/android-ble-guide/
                     Handler(Looper.getMainLooper()).post {
-                        gattState.value =
-                            CentralGattModel.ConnectionLifeCycle(BLELifecycleState.ConnectedDiscovering)
+
+                        gattState.update { it.copy(state = BLELifecycleState.ConnectedDiscovering) }
 
                         gatt.discoverServices()
                     }
@@ -48,9 +50,12 @@ class CentralGattDataSource @Inject constructor() {
                     appendLog("Disconnected from $deviceAddress")
                     setConnectedGattToNull()
                     gatt.close()
-                    gattState.value =
-                        CentralGattModel.ConnectionLifeCycle(BLELifecycleState.Disconnected)
-                    gattState.value = CentralGattModel.RestartLifecycle
+                    gattState.update {
+                        it.copy(
+                            isRestartLifecycle = true,
+                            state = BLELifecycleState.Disconnected
+                        )
+                    }
                 }
             } else {
                 // TODO: random error 133 - close() and try reconnect
@@ -59,9 +64,12 @@ class CentralGattDataSource @Inject constructor() {
 
                 setConnectedGattToNull()
                 gatt.close()
-                gattState.value =
-                    CentralGattModel.ConnectionLifeCycle(BLELifecycleState.Disconnected)
-                gattState.value = CentralGattModel.RestartLifecycle
+                gattState.update {
+                    it.copy(
+                        isRestartLifecycle = true,
+                        state = BLELifecycleState.Disconnected
+                    )
+                }
             }
         }
 
@@ -91,12 +99,11 @@ class CentralGattDataSource @Inject constructor() {
                 service.getCharacteristic(UUID.fromString(BleExt.CHAR_FOR_INDICATE_UUID))
 
             characteristicForIndicate?.let {
-                gattState.value =
-                    CentralGattModel.ConnectionLifeCycle(BLELifecycleState.ConnectedSubscribing)
+                gattState.update { it.copy(state = BLELifecycleState.ConnectedSubscribing) }
                 subscribeToIndications(it, gatt)
             } ?: run {
                 appendLog("WARN: characteristic not found ${BleExt.CHAR_FOR_INDICATE_UUID}")
-                gattState.value = CentralGattModel.ConnectionLifeCycle(BLELifecycleState.Connected)
+                gattState.update { it.copy(state = BLELifecycleState.Connected) }
             }
         }
 
@@ -106,14 +113,14 @@ class CentralGattDataSource @Inject constructor() {
             status: Int
         ) {
             if (characteristic.uuid == UUID.fromString(BleExt.CHAR_FOR_READ_UUID)) {
-                val strValue = characteristic.value?.toString(Charsets.UTF_8)?:""
+                val strValue = characteristic.value?.toString(Charsets.UTF_8) ?: ""
                 val log = "onCharacteristicRead " + when (status) {
                     BluetoothGatt.GATT_SUCCESS -> "OK, value=\"$strValue\""
                     BluetoothGatt.GATT_READ_NOT_PERMITTED -> "not allowed"
                     else -> "error $status"
                 }
                 appendLog(log)
-                gattState.value = CentralGattModel.Read(strValue)
+                gattState.update { it.copy(read = StringBuilder(strValue).toString()) }
             } else {
                 appendLog("onCharacteristicRead unknown uuid $characteristic.uuid")
             }
@@ -144,7 +151,7 @@ class CentralGattDataSource @Inject constructor() {
             if (characteristic.uuid == UUID.fromString(BleExt.CHAR_FOR_INDICATE_UUID)) {
                 val strValue = characteristic.value.toString(Charsets.UTF_8)
                 appendLog("onCharacteristicChanged value=\"$strValue\"")
-                gattState.value = CentralGattModel.Indicate(strValue)
+                gattState.update { it.copy(indicate = StringBuilder(strValue).toString()) }
             } else {
                 appendLog("onCharacteristicChanged unknown uuid $characteristic.uuid")
             }
@@ -160,17 +167,15 @@ class CentralGattDataSource @Inject constructor() {
                     val value = descriptor.value
                     val isSubscribed = value.isNotEmpty() && value[0].toInt() != 0
                     when (isSubscribed) {
-                        true -> gattState.value =
-                            CentralGattModel.ConnectionLifeCycle(BLELifecycleState.Connected)
-                        false -> gattState.value =
-                            CentralGattModel.ConnectionLifeCycle(BLELifecycleState.Disconnected)
+                        true -> gattState.update { it.copy(state = BLELifecycleState.Connected) }
+                        false -> gattState.update { it.copy(state = BLELifecycleState.Disconnected) }
                     }
                 } else {
                     appendLog("ERROR: onDescriptorWrite status=$status uuid=${descriptor.uuid} char=${descriptor.characteristic.uuid}")
                 }
 
                 // subscription processed, consider connection is ready for use
-                gattState.value = CentralGattModel.ConnectionLifeCycle(BLELifecycleState.Connected)
+                gattState.update { it.copy(state = BLELifecycleState.Connected) }
             } else {
                 appendLog("onDescriptorWrite unknown uuid $descriptor.characteristic.uuid")
             }
@@ -178,7 +183,7 @@ class CentralGattDataSource @Inject constructor() {
     }
 
     private fun appendLog(message: String) {
-        gattState.value = CentralGattModel.Log(message)
+        gattState.update { it.copy(log = message) }
     }
 
     private fun subscribeToIndications(
@@ -245,9 +250,18 @@ class CentralGattDataSource @Inject constructor() {
         characteristicForIndicate = null
     }
 
-    fun isGattNotInitialized() = connectedGatt == null
+    fun isGattNotInitialized(): Boolean {
 
-    fun disconnectGatt() = connectedGatt?.disconnect()
+        return connectedGatt == null
+    }
 
-    fun closeGatt() = connectedGatt?.close()
+    fun disconnectGatt() {
+        gattState.update { it.copy(isRestartLifecycle = false) }
+        connectedGatt?.disconnect()
+    }
+
+    fun closeGatt() {
+        gattState.update { it.copy(isRestartLifecycle = false) }
+        connectedGatt?.close()
+    }
 }

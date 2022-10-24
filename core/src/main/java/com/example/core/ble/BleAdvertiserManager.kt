@@ -43,8 +43,10 @@ class BleAdvertiserManager(
     }
 
     fun stopAdvertising() {
-        isAdvertising = false
-        bleAdvertiser.stopAdvertising(advertiseCallback)
+        if (isAdvertising){
+            isAdvertising = false
+            bleAdvertiser.stopAdvertising(advertiseCallback)
+        }
     }
 
     private val advertiseCallback = object : AdvertiseCallback() {

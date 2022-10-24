@@ -4,6 +4,7 @@ plugins {
     id("kotlin-android-extensions")
     kotlin("kapt")
     id("kotlin-android")
+    id("dagger.hilt.android.plugin")
 }
 
 android {
@@ -55,6 +56,11 @@ android {
         isAbortOnError = true
     }
 
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.2.0"
+    }
+    android.buildFeatures.compose = true
+
     android.buildFeatures.viewBinding = true
 }
 
@@ -76,25 +82,21 @@ dependencies {
     androidTestImplementation(AndroidTestingLib.ANDROIDX_TEST_RULES)
     androidTestImplementation(AndroidTestingLib.ESPRESSO_CORE)
 
-    /**
-     * DI
-     * */
-    implementation(DAGGER.DAGGER)
-    implementation(DAGGER.DAGGER_ANDROID_SUPPORT)
-    implementation(DAGGER.DAGGER_ANDROID)
-    kapt(DAGGER.DAGGER_ANNOTATION)
-    kapt(DAGGER.DAGGER_KAPT)
+    //Compose
+    implementation("androidx.compose.ui:ui:1.2.1")
+    implementation("androidx.compose.material:material:1.2.1")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.2.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.5.1")
+    implementation("androidx.activity:activity-compose:1.6.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.5.1")
+    implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
+
+    //Hilt
+    implementation("com.google.dagger:hilt-android:2.42")
+    kapt("com.google.dagger:hilt-android-compiler:2.42")
 
     //GSON
     implementation(GSON.GSON)
-
-    /**
-     * room Db
-     * */
-    implementation("androidx.room:room-rxjava2:2.4.2")
-    kapt("androidx.room:room-compiler:2.4.2")
-    api("androidx.room:room-runtime:2.4.2")
-    implementation("androidx.room:room-common:2.4.2")
 
     //Navigation
     implementation(NAVIGATION.NAVIGATION_FRAGMENT)

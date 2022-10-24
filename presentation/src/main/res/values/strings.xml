@@ -1,13 +1,15 @@
 <resources>
     <string name="app_name">El-Menus_Challenge</string>
     <string name="poster">Poster</string>
-
+    <string name="text_subscription_state">Subscription state : </string>
+    <string name="text_state">State : </string>
     <string name="text_state_disconnected">State: Disconnected</string>
     <string name="button_read">Read</string>
     <string name="button_write">Write</string>
     <string name="button_clear_log">Clear</string>
     <string name="text_static_read_hint">Readable characteristic</string>
     <string name="text_static_write_hint">Writeable characteristic</string>
+    <string name="text_static_received_not_hint">Received Notification : </string>
     <string name="text_static_indicate_hint">Indication</string>
     <string name="text_static_autoconnect">Scan &amp; autoconnect</string>
     <string name="text_subscribed">Subscribed</string>
@@ -15,6 +17,9 @@
     <string name="text_default_write_value">Android says Hi</string>
     <string name="text_hint_write_value">String value for write</string>
     <string name="text_default_logs_value">Logs:</string>
+
+    <string name="central">Central</string>
+    <string name="peripheral">Peripheral:</string>
 
 
     <string name="text_static_is_advertising">Advertising</string>
@@ -40,5 +45,12 @@
     <string name="city">"City : "</string>
     <string name="artist">"Artist : "</string>
     <string name="price">"Price : "</string>
+    <string name="permission_request">Permission Request</string>
+    <string name="give_permission">Give Permission</string>
+    <string name="permission_request_desc">To use this app\'s functionalities, you need to give us the permission.</string>
+    <string name="permission_dialog_title">Turn On Location Service</string>
+    <string name="permission_dialog_desc">Give this app a permission to proceed. If it doesn\'t work, then you\'ll have to do it manually from the settings.</string>
+    <string name="send_notificatin">Send Notification</string>
+    <string name="notify">Notify</string>
 
 </resources>

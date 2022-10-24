@@ -4,19 +4,20 @@ import android.bluetooth.*
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.ble.*
 import com.example.core.util.DispatcherProvider
 import com.example.domain.central.model.CentralGattDomainModel
 import com.example.domain.central.usecase.GattUseCase
+import com.example.presentation.central.viewstate.CentralSideEffect
 import com.example.presentation.central.viewstate.CentralViewState
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
+@HiltViewModel
 class BleCentralViewModel @Inject constructor(
     context: Context,
     private val gattUseCase: GattUseCase,
@@ -25,9 +26,14 @@ class BleCentralViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val uiState: MutableStateFlow<CentralViewState> =
-        MutableStateFlow(CentralViewState.Initial)
+        MutableStateFlow(CentralViewState())
 
     fun state() = uiState.asStateFlow()
+
+    private val sideEffectState: MutableStateFlow<CentralSideEffect> =
+        MutableStateFlow(CentralSideEffect.Initial)
+
+    fun sideEffect() = sideEffectState.asStateFlow()
 
     private var lifecycleState = BLELifecycleState.Disconnected
         set(value) {
@@ -35,7 +41,9 @@ class BleCentralViewModel @Inject constructor(
             appendLog("status = $value")
 
             viewModelScope.launch(dispatchers.main) {
-                uiState.value = CentralViewState.ConnectionLifeCycle(field)
+                uiState.update {
+                    it.copy(state = field)
+                }
             }
         }
 
@@ -55,6 +63,16 @@ class BleCentralViewModel @Inject constructor(
     }
 
     fun isBluetoothEnabled() = bluetoothAdapter.isEnabled
+
+    fun isAskForEnableBluetooth() = isBluetoothEnabled().not() &&
+                uiState.value.isUserWantsToScanAndConnect &&
+                uiState.value.isAskingForEnableBluetooth.not()
+
+    fun getBluetoothOnOffState() = if (bluetoothAdapter.isEnabled) {
+        BluetoothAdapter.STATE_ON
+    } else {
+        BluetoothAdapter.STATE_OFF
+    }
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -84,6 +102,7 @@ class BleCentralViewModel @Inject constructor(
         gattUseCase.closeGatt()
         gattUseCase.setConnectedGattToNull()
         lifecycleState = BLELifecycleState.Disconnected
+        sideEffectState.value = CentralSideEffect.Initial
     }
 
     fun bleRestartLifecycle(userWantsToScanAndConnect: Boolean = true) {
@@ -109,35 +128,68 @@ class BleCentralViewModel @Inject constructor(
     fun onTapWrite(message: ByteArray) = gattUseCase.onTapWrite(message)
 
     private fun appendLog(message: String) {
+        viewModelScope.launch {
+            uiState.update {
+                val logs = it.logs
+                logs.add(0, message)
+                it.copy(logs = logs)
+            }
+        }
+    }
+
+    fun clearLog() {
         viewModelScope.launch(dispatchers.main) {
-            uiState.value = CentralViewState.Log(message)
+            uiState.update {
+                it.copy(logs = mutableListOf())
+            }
+        }
+    }
+
+    fun onScanAndConnectChanged(userWantsToScanAndConnect: Boolean) {
+        uiState.update {
+            it.copy(
+                isUserWantsToScanAndConnect = userWantsToScanAndConnect
+            )
+        }
+    }
+
+    fun restartLifecycle() {
+        sideEffectState.value = CentralSideEffect.OnBleRestartLifecycle
+    }
+
+    fun onPermissionGranted() {
+        if (isBluetoothEnabled())
+            sideEffectState.value = CentralSideEffect.OnPermissionGranted
+    }
+
+    fun onBleStateChanged(bleState: Int) {
+        sideEffectState.value = CentralSideEffect.BleOnOffState(bleState)
+    }
+
+    fun askingForEnableBluetoothStatus(isAsking: Boolean) {
+        uiState.update {
+            it.copy(isAskingForEnableBluetooth = isAsking)
+        }
+    }
+
+    private fun updateUiState(domainState: CentralGattDomainModel) {
+        lifecycleState = domainState.state
+        appendLog(domainState.log)
+        if (domainState.isRestartLifecycle) bleRestartLifecycle()
+        uiState.update {
+            it.copy(
+                indicate = domainState.indicate,
+                read = domainState.read
+            )
         }
     }
 
     init {
         viewModelScope.launch(dispatchers.io) {
             gattUseCase.gattStateCallback()
-                .buffer(5)
-                .onEach {
-                   withContext(dispatchers.main){
-                       Log.d("testtestTAG", ":$it ")
-                       when (it) {
-                           is CentralGattDomainModel.ConnectionLifeCycle -> lifecycleState = it.state
-                           is CentralGattDomainModel.Indicate -> {
-                               uiState.value = CentralViewState.Indicate(it.message)
-                           }
-                           CentralGattDomainModel.Initial -> {}
-                           is CentralGattDomainModel.Log -> {
-                               appendLog(it.message)
-                           }
-                           is CentralGattDomainModel.Read -> {
-                               uiState.value = CentralViewState.Read(it.message)
-                           }
-                           CentralGattDomainModel.RestartLifecycle -> bleRestartLifecycle()
-                       }
-                   }
+                .collectLatest { domainState ->
+                    updateUiState(domainState)
                 }
-                .launchIn(this)
         }
     }
 }

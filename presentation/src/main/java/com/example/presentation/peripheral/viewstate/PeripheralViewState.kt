@@ -1,12 +1,11 @@
 package com.example.presentation.peripheral.viewstate
 
-
-sealed class PeripheralViewState {
-
-    object Initial : PeripheralViewState()
-    data class ConnectionState(val state: Int) : PeripheralViewState()
-    data class Log(val message: String?) : PeripheralViewState()
-    data class Write(val message: String?) : PeripheralViewState()
-    data class Subscribers(val subscribedDevices: String) : PeripheralViewState()
-    data class Advertising(val isAdvertising: Boolean) : PeripheralViewState()
-}
+data class PeripheralViewState(
+    val connectionState: Int = -1,
+    val logs: MutableList<String> = mutableListOf(),
+    val write: String = "",
+    val subscribers: String = "0",
+    val isAdvertising: Boolean = false,
+    val isUserWantsToStartAdvertising: Boolean = false,
+    val isAskingForEnableBluetooth: Boolean = false
+)
