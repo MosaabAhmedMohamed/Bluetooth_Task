@@ -1,9 +1,9 @@
 package com.example.presentation.central.viewmodel
 
+import android.app.Application
 import android.bluetooth.*
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.ble.*
@@ -16,10 +16,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 @HiltViewModel
 class BleCentralViewModel @Inject constructor(
-    context: Context,
+    private val context: Application,
     private val gattUseCase: GattUseCase,
     private val bluetoothAdapter: BluetoothAdapter,
     private val dispatchers: DispatcherProvider,
@@ -37,10 +39,9 @@ class BleCentralViewModel @Inject constructor(
 
     private var lifecycleState = BLELifecycleState.Disconnected
         set(value) {
-            field = value
-            appendLog("status = $value")
-
-            viewModelScope.launch(dispatchers.main) {
+            viewModelScope.launch(dispatchers.io) {
+                field = value
+                appendLog("status = $value")
                 uiState.update {
                     it.copy(state = field)
                 }
@@ -57,9 +58,11 @@ class BleCentralViewModel @Inject constructor(
 
         appendLog("Starting BLE scan, filter: ${bleScanner.serviceFilter()}")
 
-        bleScanner.isScanning = true
-        lifecycleState = BLELifecycleState.Scanning
-        bleScanner.startScan(scanCallback)
+        viewModelScope.launch(dispatchers.io) {
+            bleScanner.isScanning = true
+            lifecycleState = BLELifecycleState.Scanning
+            bleScanner.startScan(scanCallback())
+        }
     }
 
     fun isBluetoothEnabled() = bluetoothAdapter.isEnabled
@@ -74,39 +77,47 @@ class BleCentralViewModel @Inject constructor(
         BluetoothAdapter.STATE_OFF
     }
 
-    private val scanCallback = object : ScanCallback() {
-        override fun onScanResult(callbackType: Int, result: ScanResult) {
-            val name: String? = result.scanRecord?.deviceName ?: result.device.name
-            appendLog("onScanResult name=$name address= ${result.device?.address}")
-            bleScanner.safeStopBleScan(this)
-            lifecycleState = BLELifecycleState.Connecting
-            viewModelScope.launch(dispatchers.main) {
-                result.device.connectGatt(context, false, gattUseCase.gattCallback())
+    private suspend fun scanCallback() = suspendCoroutine<ScanCallback> { cont ->
+        viewModelScope.launch(dispatchers.io) {
+            val scanCallback = object : ScanCallback() {
+                override fun onScanResult(callbackType: Int, result: ScanResult) {
+                    val name: String? = result.scanRecord?.deviceName ?: result.device.name
+                    appendLog("onScanResult name=$name address= ${result.device?.address}")
+                    bleScanner.safeStopBleScan(this)
+                    lifecycleState = BLELifecycleState.Connecting
+                    viewModelScope.launch(dispatchers.io) {
+                        gattUseCase.gattCallback()
+                        result.device.connectGatt(context, false, gattUseCase.gattCallback())
+                    }
+                }
+
+                override fun onBatchScanResults(results: MutableList<ScanResult>?) {
+                    appendLog("onBatchScanResults, ignoring")
+                }
+
+                override fun onScanFailed(errorCode: Int) {
+                    appendLog("onScanFailed errorCode=$errorCode")
+                    bleScanner.safeStopBleScan(this)
+                    lifecycleState = BLELifecycleState.Disconnected
+                    bleRestartLifecycle()
+                }
             }
-        }
-
-        override fun onBatchScanResults(results: MutableList<ScanResult>?) {
-            appendLog("onBatchScanResults, ignoring")
-        }
-
-        override fun onScanFailed(errorCode: Int) {
-            appendLog("onScanFailed errorCode=$errorCode")
-            bleScanner.safeStopBleScan(this)
-            lifecycleState = BLELifecycleState.Disconnected
-            bleRestartLifecycle()
+            cont.resume(scanCallback)
         }
     }
-
+    
     fun bleEndLifecycle() {
-        bleScanner.safeStopBleScan(scanCallback)
-        gattUseCase.closeGatt()
-        gattUseCase.setConnectedGattToNull()
-        lifecycleState = BLELifecycleState.Disconnected
-        sideEffectState.value = CentralSideEffect.Initial
+        viewModelScope.launch(dispatchers.io) {
+            bleScanner.safeStopBleScan(scanCallback())
+            gattUseCase.closeGatt()
+            gattUseCase.setConnectedGattToNull()
+            lifecycleState = BLELifecycleState.Disconnected
+            sideEffectState.value = CentralSideEffect.Initial
+        }
     }
 
     fun bleRestartLifecycle(userWantsToScanAndConnect: Boolean = true) {
-        viewModelScope.launch(dispatchers.main) {
+        viewModelScope.launch(dispatchers.io) {
             if (userWantsToScanAndConnect) {
                 if (gattUseCase.isGattNotInitialized()) {
                     init()
@@ -120,7 +131,7 @@ class BleCentralViewModel @Inject constructor(
     }
 
     fun onTapRead() {
-        viewModelScope.launch(dispatchers.main) {
+        viewModelScope.launch(dispatchers.io) {
             gattUseCase.onTapRead()
         }
     }
@@ -138,7 +149,7 @@ class BleCentralViewModel @Inject constructor(
     }
 
     fun clearLog() {
-        viewModelScope.launch(dispatchers.main) {
+        viewModelScope.launch(dispatchers.io) {
             uiState.update {
                 it.copy(logs = mutableListOf())
             }

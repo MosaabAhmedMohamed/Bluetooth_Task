@@ -38,7 +38,7 @@ class BlePeripheralViewModel @Inject constructor(
         BleAdvertiserManager(bluetoothAdapter, {
             appendLog(it)
         }, { advertising ->
-            viewModelScope.launch(dispatchers.main) {
+            viewModelScope.launch(dispatchers.io) {
                 uiState.update { it.copy(isAdvertising = advertising) }
             }
         })
@@ -66,34 +66,34 @@ class BlePeripheralViewModel @Inject constructor(
     }
 
     fun bleStartAdvertising() {
-        viewModelScope.launch(dispatchers.main) {
+        viewModelScope.launch(dispatchers.io) {
             gattServerUseCase.bleStartGattServer()
             bleAdvertiser.startAdvertising()
         }
     }
 
     fun bleStopAdvertising() {
-        viewModelScope.launch(dispatchers.main) {
+        viewModelScope.launch(dispatchers.io) {
             gattServerUseCase.bleStopGattServer()
             bleAdvertiser.stopAdvertising()
         }
     }
 
     fun bleIndicate(text: String) {
-        viewModelScope.launch(dispatchers.main) {
+        viewModelScope.launch(dispatchers.io) {
             gattServerUseCase.bleIndicate(text)
         }
     }
 
     private fun updateSubscribersUI() {
         val strSubscribers = "${subscribedDevices.count()} subscribers"
-        viewModelScope.launch(dispatchers.main) {
+        viewModelScope.launch(dispatchers.io) {
             uiState.update { it.copy(subscribers = strSubscribers) }
         }
     }
 
     private fun appendLog(message: String) {
-        viewModelScope.launch(dispatchers.main) {
+        viewModelScope.launch(dispatchers.io) {
             uiState.update {
                 val logs = it.logs
                 logs.add(0, message)
@@ -103,7 +103,7 @@ class BlePeripheralViewModel @Inject constructor(
     }
 
     fun clearLog() {
-        viewModelScope.launch(dispatchers.main) {
+        viewModelScope.launch(dispatchers.io) {
             uiState.update {
                 it.copy(logs = mutableListOf())
             }

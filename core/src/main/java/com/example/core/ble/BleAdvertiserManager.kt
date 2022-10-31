@@ -6,6 +6,8 @@ import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
 import android.os.ParcelUuid
 import java.util.*
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 class BleAdvertiserManager(
     private val bluetoothAdapter: BluetoothAdapter,
@@ -37,34 +39,37 @@ class BleAdvertiserManager(
         .build()
 
 
-    fun startAdvertising() {
+   suspend fun startAdvertising() {
         isAdvertising = true
-        bleAdvertiser.startAdvertising(advertiseSettings, advertiseData, advertiseCallback)
+        bleAdvertiser.startAdvertising(advertiseSettings, advertiseData, advertiseCallback())
     }
 
-    fun stopAdvertising() {
-        if (isAdvertising){
+    suspend  fun stopAdvertising() {
+        if (isAdvertising) {
             isAdvertising = false
-            bleAdvertiser.stopAdvertising(advertiseCallback)
+            bleAdvertiser.stopAdvertising(advertiseCallback())
         }
     }
 
-    private val advertiseCallback = object : AdvertiseCallback() {
-        override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
-            log.invoke("Advertise start success\n${BleExt.SERVICE_UUID}")
-        }
-
-        override fun onStartFailure(errorCode: Int) {
-            val desc = when (errorCode) {
-                ADVERTISE_FAILED_DATA_TOO_LARGE -> "\nADVERTISE_FAILED_DATA_TOO_LARGE"
-                ADVERTISE_FAILED_TOO_MANY_ADVERTISERS -> "\nADVERTISE_FAILED_TOO_MANY_ADVERTISERS"
-                ADVERTISE_FAILED_ALREADY_STARTED -> "\nADVERTISE_FAILED_ALREADY_STARTED"
-                ADVERTISE_FAILED_INTERNAL_ERROR -> "\nADVERTISE_FAILED_INTERNAL_ERROR"
-                ADVERTISE_FAILED_FEATURE_UNSUPPORTED -> "\nADVERTISE_FAILED_FEATURE_UNSUPPORTED"
-                else -> ""
+    private suspend fun advertiseCallback() = suspendCoroutine<AdvertiseCallback> { cont ->
+       val advertiseCallback = object : AdvertiseCallback() {
+            override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
+                log.invoke("Advertise start success\n${BleExt.SERVICE_UUID}")
             }
-            log.invoke("Advertise start failed: errorCode=$errorCode $desc")
-            isAdvertising = false
+
+            override fun onStartFailure(errorCode: Int) {
+                val desc = when (errorCode) {
+                    ADVERTISE_FAILED_DATA_TOO_LARGE -> "\nADVERTISE_FAILED_DATA_TOO_LARGE"
+                    ADVERTISE_FAILED_TOO_MANY_ADVERTISERS -> "\nADVERTISE_FAILED_TOO_MANY_ADVERTISERS"
+                    ADVERTISE_FAILED_ALREADY_STARTED -> "\nADVERTISE_FAILED_ALREADY_STARTED"
+                    ADVERTISE_FAILED_INTERNAL_ERROR -> "\nADVERTISE_FAILED_INTERNAL_ERROR"
+                    ADVERTISE_FAILED_FEATURE_UNSUPPORTED -> "\nADVERTISE_FAILED_FEATURE_UNSUPPORTED"
+                    else -> ""
+                }
+                log.invoke("Advertise start failed: errorCode=$errorCode $desc")
+                isAdvertising = false
+            }
         }
+        cont.resume(advertiseCallback)
     }
 }
