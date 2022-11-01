@@ -17,6 +17,9 @@
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="s"/>
 
+    <!-- Required for foreground services on P+. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
     <application
         android:name=".app.BluetoothTaskApp"
         android:allowBackup="true"
@@ -37,6 +40,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name="com.example.presentation.central.service.CentralService"
+            android:enabled="true"
+            android:exported="true"
+            android:foregroundServiceType="connectedDevice" />
     </application>
 
 </manifest>

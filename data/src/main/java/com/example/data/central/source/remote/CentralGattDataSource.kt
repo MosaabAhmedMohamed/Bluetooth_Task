@@ -11,7 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import kotlin.coroutines.resume
@@ -23,7 +23,7 @@ class CentralGattDataSource @Inject constructor(
     private val scope = CoroutineScope(dispatchers.io + SupervisorJob())
 
     private val gattState: MutableStateFlow<CentralGattModel> =
-        MutableStateFlow(CentralGattModel())
+        MutableStateFlow(CentralGattModel(0))
 
     fun state() = gattState.asStateFlow()
 
@@ -195,7 +195,8 @@ class CentralGattDataSource @Inject constructor(
 
 
     private fun appendLog(message: String) {
-        gattState.update { it.copy(log = message) }
+        val strTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        gattState.update { it.copy(log =   "\n$strTime $message") }
     }
 
     private fun subscribeToIndications(

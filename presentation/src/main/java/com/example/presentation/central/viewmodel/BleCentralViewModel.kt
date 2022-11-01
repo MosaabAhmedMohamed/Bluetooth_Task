@@ -8,13 +8,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.ble.*
 import com.example.core.util.DispatcherProvider
+import com.example.core.util.isServiceRunning
 import com.example.domain.central.model.CentralGattDomainModel
+import com.example.domain.central.usecase.CacheUseCase
 import com.example.domain.central.usecase.GattUseCase
+import com.example.presentation.central.service.CentralService
 import com.example.presentation.central.viewstate.CentralSideEffect
 import com.example.presentation.central.viewstate.CentralViewState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -23,6 +28,7 @@ import kotlin.coroutines.suspendCoroutine
 class BleCentralViewModel @Inject constructor(
     private val context: Application,
     private val gattUseCase: GattUseCase,
+    private val cacheUseCase: CacheUseCase,
     private val bluetoothAdapter: BluetoothAdapter,
     private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
@@ -55,7 +61,6 @@ class BleCentralViewModel @Inject constructor(
             appendLog("Already scanning")
             return
         }
-
         appendLog("Starting BLE scan, filter: ${bleScanner.serviceFilter()}")
 
         viewModelScope.launch(dispatchers.io) {
@@ -68,8 +73,8 @@ class BleCentralViewModel @Inject constructor(
     fun isBluetoothEnabled() = bluetoothAdapter.isEnabled
 
     fun isAskForEnableBluetooth() = isBluetoothEnabled().not() &&
-                uiState.value.isUserWantsToScanAndConnect &&
-                uiState.value.isAskingForEnableBluetooth.not()
+            uiState.value.isUserWantsToScanAndConnect &&
+            uiState.value.isAskingForEnableBluetooth.not()
 
     fun getBluetoothOnOffState() = if (bluetoothAdapter.isEnabled) {
         BluetoothAdapter.STATE_ON
@@ -105,15 +110,22 @@ class BleCentralViewModel @Inject constructor(
             cont.resume(scanCallback)
         }
     }
-    
+
     fun bleEndLifecycle() {
-        viewModelScope.launch(dispatchers.io) {
-            bleScanner.safeStopBleScan(scanCallback())
-            gattUseCase.closeGatt()
-            gattUseCase.setConnectedGattToNull()
-            lifecycleState = BLELifecycleState.Disconnected
-            sideEffectState.value = CentralSideEffect.Initial
-        }
+        if (isRunningInBackground().not())
+            viewModelScope.launch(dispatchers.io) {
+                bleScanner.safeStopBleScan(scanCallback())
+                gattUseCase.closeGatt()
+                gattUseCase.setConnectedGattToNull()
+                lifecycleState = BLELifecycleState.Disconnected
+                sideEffectState.value = CentralSideEffect.Initial
+            }
+    }
+
+    private fun isRunningInBackground(): Boolean {
+        return gattUseCase.isGattNotInitialized().not() &&
+                context.isServiceRunning(CentralService::class.java) &&
+                uiState.value.state == BLELifecycleState.Connected
     }
 
     fun bleRestartLifecycle(userWantsToScanAndConnect: Boolean = true) {
@@ -140,9 +152,10 @@ class BleCentralViewModel @Inject constructor(
 
     private fun appendLog(message: String) {
         viewModelScope.launch {
+            val strTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
             uiState.update {
                 val logs = it.logs
-                logs.add(0, message)
+                logs.add(0, "\n$strTime $message")
                 it.copy(logs = logs)
             }
         }
@@ -150,6 +163,7 @@ class BleCentralViewModel @Inject constructor(
 
     fun clearLog() {
         viewModelScope.launch(dispatchers.io) {
+            cacheUseCase.clearCache()
             uiState.update {
                 it.copy(logs = mutableListOf())
             }
@@ -162,6 +176,7 @@ class BleCentralViewModel @Inject constructor(
                 isUserWantsToScanAndConnect = userWantsToScanAndConnect
             )
         }
+        onBackgroundServiceStateChanged(userWantsToScanAndConnect)
     }
 
     fun restartLifecycle() {
@@ -177,20 +192,40 @@ class BleCentralViewModel @Inject constructor(
         sideEffectState.value = CentralSideEffect.BleOnOffState(bleState)
     }
 
+    private fun onBackgroundServiceStateChanged(state: Boolean) {
+        if (uiState.value.isBackgroundServiceRunning != state) {
+            uiState.update {
+                it.copy(isBackgroundServiceRunning = state)
+            }
+            sideEffectState.value = CentralSideEffect.BackgroundServiceState(state)
+        }
+    }
+
     fun askingForEnableBluetoothStatus(isAsking: Boolean) {
         uiState.update {
             it.copy(isAskingForEnableBluetooth = isAsking)
         }
     }
 
-    private fun updateUiState(domainState: CentralGattDomainModel) {
-        lifecycleState = domainState.state
-        appendLog(domainState.log)
-        if (domainState.isRestartLifecycle) bleRestartLifecycle()
+    fun handleIfWasRunningInBackground() {
+        if (isRunningInBackground() && uiState.value.isUserWantsToScanAndConnect.not())
+            uiState.update {
+                it.copy(
+                    isBackgroundServiceRunning = isRunningInBackground()
+                )
+            }
+    }
+
+    private fun updateUiState(domainStates: List<CentralGattDomainModel>) {
+        val currentState = domainStates.last()
+
+        lifecycleState = currentState.state
+        if (currentState.isRestartLifecycle) bleRestartLifecycle()
         uiState.update {
             it.copy(
-                indicate = domainState.indicate,
-                read = domainState.read
+                indicate = currentState.indicate,
+                read = currentState.read,
+                logs = domainStates.map { it.log }.asReversed().toMutableList()
             )
         }
     }
@@ -198,8 +233,8 @@ class BleCentralViewModel @Inject constructor(
     init {
         viewModelScope.launch(dispatchers.io) {
             gattUseCase.gattStateCallback()
-                .collectLatest { domainState ->
-                    updateUiState(domainState)
+                .collectLatest { domainStates ->
+                    updateUiState(domainStates)
                 }
         }
     }

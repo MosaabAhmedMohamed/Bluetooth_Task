@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">El-Menus_Challenge</string>
+    <string name="app_name">Bluetooth Task</string>
     <string name="poster">Poster</string>
     <string name="text_subscription_state">Subscription state : </string>
     <string name="text_state">State : </string>
