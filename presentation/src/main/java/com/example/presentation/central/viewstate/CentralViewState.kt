@@ -8,5 +8,6 @@ data class CentralViewState(
     val read: String = "",
     val indicate: String = "",
     val isUserWantsToScanAndConnect: Boolean = false,
-    val isAskingForEnableBluetooth: Boolean = false
+    val isAskingForEnableBluetooth: Boolean = false,
+    val isBackgroundServiceRunning: Boolean = false
 )

@@ -2,6 +2,7 @@ package com.example.bluetoothtask.di.peripheral
 
 import android.app.Application
 import android.bluetooth.BluetoothManager
+import com.example.core.util.DispatcherProvider
 import com.example.data.peripheral.repository.PeripheralRepositoryImpl
 import com.example.data.peripheral.source.remote.PeripheralGattDataSource
 import com.example.domain.peripheral.repository.PeripheralRepository
@@ -17,11 +18,13 @@ class PeripheralModule {
     @Provides
     fun providePeripheralGattDataSource(
         context: Application,
-        bluetoothManager: BluetoothManager
+        bluetoothManager: BluetoothManager,
+        dispatcherProvider: DispatcherProvider
     ): PeripheralGattDataSource =
         PeripheralGattDataSource(
             context,
-            bluetoothManager
+            bluetoothManager,
+            dispatcherProvider
         )
 
     @Provides

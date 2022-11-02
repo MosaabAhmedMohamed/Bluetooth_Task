@@ -18,8 +18,6 @@ import androidx.compose.material.Text
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.presentation.base.ui.theme.BluetoothTaskTheme
-import java.text.SimpleDateFormat
-import java.util.*
 import com.example.presentation.R
 
 @Composable
@@ -66,7 +64,6 @@ private fun LogItem(
             modifier = Modifier.padding(8.dp)
         ) {
             val (content) = createRefs()
-            val strTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
             Log.d("appendLog", log)
             Text(
                 modifier = Modifier
@@ -75,7 +72,7 @@ private fun LogItem(
                         top.linkTo(parent.top)
                     }
                     .padding(start = 12.dp, top = 4.dp),
-                text = stringResource(id = R.string.text_default_logs_value)+ "\n$strTime $log",
+                text = stringResource(id = R.string.text_default_logs_value)+ log,
                 style = MaterialTheme.typography.body2,
             )
         }

@@ -9,7 +9,7 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 
-@Module(includes = [BleModule::class,DispatcherProviderModule::class])
+@Module(includes = [BleModule::class, DispatcherProviderModule::class, DbModule::class])
 @InstallIn(SingletonComponent::class)
 class AppModule {
 

@@ -32,6 +32,7 @@ import com.google.accompanist.insets.navigationBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import com.example.presentation.central.service.CentralService
 import com.google.accompanist.permissions.*
 
 @Composable
@@ -83,7 +84,7 @@ private fun CentralScreenBody(viewModel: BleCentralViewModel) {
     val viewState = viewModel.state().collectAsState().value
     val sideEffect = viewModel.sideEffect().collectAsState().value
     val currentSideEffect =
-        remember { mutableStateOf<CentralSideEffect>(CentralSideEffect.Initial) }
+        remember { mutableStateOf<CentralSideEffect>(CentralSideEffect.NONE) }
     val requestBluetoothLauncher = rememberBluetoothLauncher {
         viewModel.askingForEnableBluetoothStatus(false)
         if (it)
@@ -103,7 +104,7 @@ private fun CentralScreenBody(viewModel: BleCentralViewModel) {
             currentSideEffect.value = sideEffect
             when (sideEffect) {
                 is CentralSideEffect.Initial -> {
-
+                    viewModel.handleIfWasRunningInBackground()
                 }
                 is CentralSideEffect.OnBleRestartLifecycle -> {
                     BleRestartLifecycle(viewModel.isBluetoothEnabled(),
@@ -132,6 +133,10 @@ private fun CentralScreenBody(viewModel: BleCentralViewModel) {
                         }
                     }
                 }
+                is CentralSideEffect.BackgroundServiceState -> {
+                    handleCentralServiceState(sideEffect.isAllowedToRun)
+                }
+                CentralSideEffect.NONE -> {}
             }
         }
 
@@ -167,7 +172,7 @@ private fun CentralScreenBody(viewModel: BleCentralViewModel) {
         )
 
         Switch(
-            checked = viewState.isUserWantsToScanAndConnect,
+            checked = viewState.isUserWantsToScanAndConnect || viewState.isBackgroundServiceRunning,
             onCheckedChange = {
                 viewModel.onScanAndConnectChanged(it)
             },
@@ -236,6 +241,18 @@ private fun CentralScreenBody(viewModel: BleCentralViewModel) {
         checkForEnablingBluetooth(viewModel.isAskForEnableBluetooth(), requestBluetoothLauncher) {
             viewModel.askingForEnableBluetoothStatus(true)
         }
+
+
+    }
+}
+
+@Composable
+private fun handleCentralServiceState(allowedToRun: Boolean) {
+    val context = LocalContext.current
+    if (allowedToRun) {
+        context.startService(Intent(context, CentralService::class.java))
+    } else {
+        context.stopService(Intent(context, CentralService::class.java))
     }
 }
 

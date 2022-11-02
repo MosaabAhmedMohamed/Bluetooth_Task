@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">El-Menus_Challenge</string>
+    <string name="app_name">Bluetooth Task</string>
     <string name="poster">Poster</string>
     <string name="text_subscription_state">Subscription state : </string>
     <string name="text_state">State : </string>
@@ -31,20 +31,6 @@
     <string name="button_send">Send</string>
 
 
-    <string name="opps"> Opps </string>
-    <string name="error_desc"> Something went wrong !</string>
-    <string name="retry"> Retry </string>
-    <string name="empty_items">there\'s no items available now </string>
-    <string name="products">Products</string>
-    <string name="product_detail">Product Detail</string>
-    <string name="item_list">Tag Items</string>
-    <string name="dismiss">Dismiss</string>
-    <string name="search">Search</string>
-    <string name="search_by_city">Search By City</string>
-    <string name="search_by_price">Search By Price</string>
-    <string name="city">"City : "</string>
-    <string name="artist">"Artist : "</string>
-    <string name="price">"Price : "</string>
     <string name="permission_request">Permission Request</string>
     <string name="give_permission">Give Permission</string>
     <string name="permission_request_desc">To use this app\'s functionalities, you need to give us the permission.</string>
