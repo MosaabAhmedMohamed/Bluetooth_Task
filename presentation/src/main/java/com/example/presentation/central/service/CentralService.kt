@@ -3,6 +3,7 @@ package com.example.presentation.central.service
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Binder
@@ -28,21 +29,42 @@ class CentralService : LifecycleService() {
 
     private val channelID = "Central Notification"
     private val centralNotificationId = 12345678
+
+    private val targetIntent by lazy{
+        Intent(this, Class.forName("com.example.bluetoothtask.NavHostActivity")).apply {
+            addFlags(
+                Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        or Intent.FLAG_ACTIVITY_NEW_TASK
+            )
+        }
+    }
+
+    private val pendingIntent by lazy{
+        PendingIntent.getActivity(
+            this, 123465, targetIntent,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            else
+                PendingIntent.FLAG_UPDATE_CURRENT
+        )
+    }
+
     /**
      * Returns the [NotificationCompat] used as part of the foreground service.
      */
     private val notification: Notification by lazy {
         NotificationCompat.Builder(this, channelID)
             .apply {
-                setContentText(getString(R.string.text_state))
+                setContentText(getString(R.string.text_subscribed))
                     .setContentTitle(getString(R.string.app_name))
                     .setOngoing(true)
                     .setPriority(Notification.PRIORITY_HIGH)
-                    //.setSmallIcon(R.mipmap.ic_launcher)
+                    .setSmallIcon(R.drawable.ic_baseline_connect_without_contact_24)
                     .setSound(null)
                     .setOnlyAlertOnce(true)
                     .setTicker(getString(R.string.app_name))
                     .setWhen(System.currentTimeMillis())
+                    .setContentIntent(pendingIntent)
             }.build()
     }
 
