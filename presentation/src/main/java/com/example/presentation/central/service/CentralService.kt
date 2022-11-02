@@ -15,14 +15,13 @@ import com.example.domain.central.repository.CentralRepository
 import com.example.presentation.R
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlin.random.Random
 
 @AndroidEntryPoint
 class CentralService : LifecycleService() {
 
-
-
     @Inject
-    lateinit var userService: CentralRepository
+    lateinit var centralRepository: CentralRepository
 
     private lateinit var notificationManager: NotificationManager
     private val binder = LocalBinder()
@@ -30,8 +29,11 @@ class CentralService : LifecycleService() {
     private val channelID = "Central Notification"
     private val centralNotificationId = 12345678
 
-    private val targetIntent by lazy{
-        Intent(this, Class.forName("com.example.bluetoothtask.NavHostActivity")).apply {
+    private val targetIntent by lazy {
+        Intent(
+            this,
+            Class.forName("com.example.bluetoothtask.NavHostActivity")
+        ).apply {
             addFlags(
                 Intent.FLAG_ACTIVITY_CLEAR_TOP
                         or Intent.FLAG_ACTIVITY_NEW_TASK
@@ -39,9 +41,9 @@ class CentralService : LifecycleService() {
         }
     }
 
-    private val pendingIntent by lazy{
+    private val pendingIntent by lazy {
         PendingIntent.getActivity(
-            this, 123465, targetIntent,
+            this, Random.nextInt(), targetIntent,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             else
@@ -77,7 +79,8 @@ class CentralService : LifecycleService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = getString(R.string.app_name)
             // Create the channel for the notification
-            val mChannel = NotificationChannel(channelID, name, NotificationManager.IMPORTANCE_DEFAULT)
+            val mChannel =
+                NotificationChannel(channelID, name, NotificationManager.IMPORTANCE_DEFAULT)
             mChannel.setSound(null, null)
 
             // Set the Notification Channel for the Notification Manager.

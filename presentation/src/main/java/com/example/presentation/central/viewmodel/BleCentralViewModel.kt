@@ -4,6 +4,7 @@ import android.app.Application
 import android.bluetooth.*
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.ble.*
@@ -236,6 +237,13 @@ class BleCentralViewModel @Inject constructor(
                 .collectLatest { domainStates ->
                     updateUiState(domainStates)
                 }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        if (isRunningInBackground().not()){
+            context.stopService(Intent(context, CentralService::class.java))
         }
     }
 }
